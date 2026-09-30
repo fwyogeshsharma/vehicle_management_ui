@@ -1,0 +1,20 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Empty base URL: the browser calls /api/... on the Netlify origin, and the redirect below
+# forwards it to the API. Keeps the page on HTTPS with no mixed content and no CORS.
+[build.environment]
+  VITE_API_BASE_URL = ""
+
+# Must come before the SPA fallback. Netlify uses the first matching rule.
+[[redirects]]
+  from = "/api/*"
+  to = "http://35.188.9.114:8080/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
