@@ -1,0 +1,1892 @@
+/*
+ * One stylesheet, no framework.
+ *
+ * Seven screens of tables and forms do not need a component library, and a library's opinions
+ * would have to be fought every time a rule from the API needs explaining in place — which, in
+ * this domain, is often.
+ */
+
+:root {
+  --ink: #16202b;
+  --ink-soft: #5b6b7c;
+  --line: #dfe5ec;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --accent: #14548a;
+  --accent-soft: #e8f1f9;
+  --ok: #1d7a4c;
+  --ok-soft: #e6f4ec;
+  --warn: #8a5a14;
+  --warn-soft: #fdf3e2;
+  --error: #a32020;
+  --error-soft: #fdeaea;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 0 0 4px;
+}
+h2 {
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* ── shell ──────────────────────────────────────────────────────────────── */
+
+.shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  height: 56px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.nav a {
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav a:hover {
+  background: var(--bg);
+}
+
+.nav a.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.whoami {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.whoami-name {
+  font-weight: 550;
+  color: var(--ink);
+}
+
+.content {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-loading {
+  padding: 24px;
+  color: var(--ink-soft);
+}
+
+/* ── surfaces ───────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.inset {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.empty {
+  padding: 16px;
+  color: var(--ink-soft);
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+
+.notice {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.notice-info {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.notice-ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.notice-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.notice-error {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+/* ── tiles ──────────────────────────────────────────────────────────────── */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tile:hover {
+  border-color: var(--accent);
+}
+
+.tile-value {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.tile-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* ── tables ─────────────────────────────────────────────────────────────── */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/*
+ * Zebra striping. Applied to the row rather than the cell so it sits under .row-muted, and
+ * kept very light: the point is to help the eye track across a wide row, not to draw bands.
+ */
+.table tbody tr:nth-child(even) {
+  background: #fafbfd;
+}
+
+.table tbody tr:hover {
+  background: var(--accent-soft);
+}
+
+.table .right {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-muted td {
+  opacity: 0.55;
+}
+
+.contact-mobile {
+  font-variant-numeric: tabular-nums;
+}
+
+.sort {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+
+.sort-active {
+  color: var(--accent);
+}
+
+.sort-arrow {
+  margin-left: 4px;
+}
+
+/* ── forms ──────────────────────────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink-soft);
+}
+
+.field input,
+.field select,
+.field textarea,
+.search,
+/* Not just `select`. A bare <input> in a filter bar -- the search box, a date range -- fell
+   through to the browser default: square corners, no padding, a different height from the
+   select sitting beside it. Every page with a filter bar had it; the lorry-receipt one just
+   made it obvious by putting four of them in a row. */
+.filters input,
+.filters select,
+.inline-form input,
+.inline-form select,
+.place-row select,
+/* The intake edit panel uses bare <label><input> rather than <Field>, so without these it fell
+   through to the browser default: square corners, no padding, a different height from every
+   other box in the app. One shared rule, not a second set of input styles. */
+.intake-reads-editing input,
+.intake-reads-editing select,
+.place-search input {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--card);
+  color: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.intake-reads-editing input:focus,
+.intake-reads-editing select:focus,
+.place-search input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.field-invalid input,
+.field-invalid select,
+.field-invalid textarea {
+  border-color: var(--error);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.field-error {
+  font-size: 12.5px;
+  color: var(--error);
+  font-weight: 500;
+}
+
+.grid-2,
+.grid-3,
+.grid-4 {
+  display: grid;
+  gap: 12px;
+}
+.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 720px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 0 0 12px;
+}
+
+legend {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink-soft);
+  padding: 0 4px;
+}
+
+.radio,
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+
+.checkbox .field-hint {
+  flex-basis: 100%;
+  margin-left: 24px;
+}
+
+.checkbox.inline {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 550;
+}
+
+button.primary:hover:not(:disabled) {
+  color: #fff;
+  filter: brightness(1.1);
+}
+
+button.link {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+button.link.danger {
+  color: var(--error);
+}
+
+/* Outlined, not filled. Discard sits directly beneath Complete and the two are not equals: one
+   is the job, the other is giving up on a photo. A solid red button would pull the eye first and
+   be the easier thing to hit by mistake. */
+button.danger {
+  color: var(--error);
+  border-color: var(--line);
+}
+
+button.danger:hover:not(:disabled) {
+  color: var(--error);
+  border-color: var(--error);
+  background: var(--error-soft, var(--card));
+}
+
+/* ── odds and ends ──────────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  margin-right: 4px;
+}
+
+.badge-ok {
+  background: var(--ok-soft);
+  border-color: transparent;
+  color: var(--ok);
+}
+
+.chips {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.chip-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.pairs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.pairs dt {
+  color: var(--ink-soft);
+}
+
+.pairs dd {
+  margin: 0;
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.small {
+  font-size: 12.5px;
+}
+
+.big {
+  font-size: 18px;
+  font-weight: 550;
+}
+
+.suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.places {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.place-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pager-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pager-controls select {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+
+/* ── login ──────────────────────────────────────────────────────────────── */
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card h1 {
+  font-size: 20px;
+}
+
+.login-card button.primary {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.owner-choice .field {
+  margin-top: 8px;
+}
+
+/* ── photo intake worklist ──────────────────────────────────────────────── */
+
+/* photo | reads | meta | actions.
+   The reads column is `minmax(0, 1fr)` and the reads themselves are a label/value grid, so the
+   slack lands INSIDE the block as breathing room between label and value rather than as one
+   dead gap between the reads and the badges. */
+/* Tighter than a standalone .card: a worklist row is scanned, not read. */
+.card:has(> .intake-row) {
+  padding: 10px 14px;
+}
+
+.intake-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .intake-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fixed, so every row's labels start at the same x. `auto` sized this column to the row with
+   the most photos and left the list ragged. */
+.intake-photos {
+  width: 84px;
+  flex-direction: column;
+  align-items: flex-start;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* A thumbnail is enough to tell WHICH truck this is; it is not enough to read a plate painted
+   small on the side of one photographed from across a road. Hence the viewer below — the
+   thumbnail is a way in, not the thing a CSR checks the machine against. */
+.intake-photo {
+  width: 84px;
+  height: 63px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  display: block;
+}
+
+.intake-photo-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  line-height: 0;
+  border-radius: 6px;
+}
+
+.intake-photo-button:hover .intake-photo,
+.intake-photo-button:focus-visible .intake-photo {
+  border-color: var(--accent, #2563eb);
+}
+
+/* ── the full-size photo viewer ───────────────────────────────────────────── */
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.photo-viewer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(1400px, 96vw);
+  max-height: 94vh;
+}
+
+.photo-viewer-inner header,
+.photo-viewer-inner footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #fff;
+}
+
+.photo-viewer-inner header .muted,
+.photo-viewer-inner .link {
+  color: #fff;
+}
+
+/* The stage is a fixed window the image is zoomed and panned INSIDE. Sizing the image itself and
+   letting it grow would resize the dialog on every zoom step and shove the footer off-screen. */
+.photo-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #000;
+  /* Leaves room for the header, the hint and the Previous/Next footer. At 80vh the footer fell
+     off the bottom of the viewport on a laptop screen, which is where this will be used. */
+  height: 72vh;
+  width: min(1400px, 92vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+/* Never cropped at 1x: a cropped plate is worse than a small one. */
+.photo-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.photo-zoom {
+  display: flex;
+  gap: 4px;
+}
+
+.photo-zoom button {
+  min-width: 42px;
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-hint {
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+}
+
+/* ── numbers OCR found, awaiting a human to say whose they are ────────────── */
+
+.ocr-numbers {
+  margin: 10px 0;
+}
+
+.ocr-numbers ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ocr-numbers li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.ocr-numbers code {
+  font-weight: 600;
+}
+
+.photo-loading,
+.photo-missing {
+  display: inline-block;
+  width: 84px;
+  height: 63px;
+  border-radius: 6px;
+  border: 1px dashed var(--line);
+  background: var(--bg);
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: center;
+  line-height: 99px;
+}
+
+/* Several columns of label/value pairs, wrapping to the width available.
+   Seven fields in ONE column made every card as tall as the longest possible report, so a page
+   of twenty was mostly scrolling. Three columns puts the same seven on three lines.
+
+   Each `.read` owns its own little label|value grid rather than all of them sharing one via
+   `display: contents`. That was the earlier version and it breaks the moment a field carries an
+   extra line — a disagreement warning, a confidence note — because the stray child lands in the
+   next pair's label cell and the whole row shifts. */
+.intake-reads {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 3px 26px;
+  align-content: start;
+}
+
+.read {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 0 10px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.read-label {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.read-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+/* A value the machine could not find is an absence, not a reading. Monospace bold made three
+   "nothing read"s look like data the row actually carried. */
+.read-value .muted {
+  font-family: inherit;
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Under the value, in the value column — never under the label. */
+.read > .small {
+  grid-column: 2;
+  margin-top: -2px;
+}
+
+/* Spans every column: it belongs to the block, not to whichever pair it happens to follow. */
+.reads-edit {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 6px;
+}
+
+/* Only when the machine and the human disagree — the case worth a second look. */
+.read-disagree {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.intake-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  text-align: right;
+  min-width: 132px;
+}
+
+/* The timestamp is context, not a heading. It was the same weight as the plate. */
+.intake-meta .small {
+  font-size: 11px;
+}
+
+/* In a row, not a column. Stacked, four buttons made the card three lines taller than its own
+   content — the actions, not the information, were setting the height of every row in the list. */
+.intake-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.intake-actions button,
+.intake-actions a {
+  padding: 5px 11px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+
+/* ── correcting what the photo says, in the worklist ──────────────────────── */
+
+/* Edit mode is its own two-column grid rather than the label/value one: an input needs its label
+   above it, and the fields want different widths. A registration box 670px wide for a ten-
+   character value is what the first version looked like. */
+.intake-reads-editing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px 14px;
+  align-items: start;
+}
+
+.intake-reads-editing label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.intake-reads-editing input {
+  width: 100%;
+}
+
+/* The numbers and the duplicate notice need the full width; the rest do not. */
+.intake-reads-editing label.wide,
+.intake-reads-editing .already-on-file,
+.intake-reads-editing .read-actions,
+.intake-reads-editing .form-error {
+  grid-column: 1 / -1;
+}
+
+.read-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+/* What completing will reuse, and what it will create. Advisory, never blocking — so it reads
+   as information beside the field, not as an error about it. */
+.already-on-file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.already-on-file code {
+  font-weight: 600;
+}
+
+
+/* A qualifier on a value, not a value of its own. */
+.read-note {
+  font-family: var(--font, system-ui), sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--warn);
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+/* ── picking where a truck runs ───────────────────────────────────────────── */
+
+.places-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.place-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.place-chips li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 13px;
+}
+
+.chip-remove {
+  border: 0;
+  background: none;
+  padding: 0 4px;
+  line-height: 1;
+  font-size: 16px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.chip-remove:hover {
+  color: var(--error);
+}
+
+.place-search {
+  position: relative;
+}
+
+.place-search input {
+  width: 100%;
+}
+
+/* Absolute, so opening the list does not shove the Save button down the card. */
+.place-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.place-suggestions button {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.place-suggestions button:hover {
+  background: var(--bg);
+  color: inherit;
+}
+
+/* ── the worklist row, dense ──────────────────────────────────────────────── */
+
+.intake-vehicle {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 230px;
+}
+
+.photo-none {
+  width: 84px;
+  height: 63px;
+  border-radius: 5px;
+  border: 1px dashed var(--line);
+  display: inline-block;
+}
+
+.vehicle-id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* The plate is the anchor of the row: it is what a CSR looks for, so it is the one thing set
+   bigger than body text. Also the way into the photo, since checking one against the other is
+   the whole job. */
+.plate {
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: inherit;
+  cursor: pointer;
+}
+
+.plate:hover {
+  color: var(--accent);
+}
+
+.intake-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.fact-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+/* Dots between the facts, not labels in front of them. */
+.fact-line.muted-sep > span:not(:last-child)::after {
+  content: '·';
+  margin-left: 10px;
+  color: var(--ink-soft);
+}
+
+.phone {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--accent);
+}
+
+.intake-meta {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+
+/* A failure is one line in a list, not a banner. */
+.row-error {
+  color: var(--error);
+  margin-top: 4px;
+}
+
+/* ── row actions and inline row editors ───────────────────────────────────── */
+
+/* Right-aligned and narrow: the actions are the same two on every row, so they should take the
+   least width that still leaves them hittable. */
+.col-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.icon-action {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-soft);
+  line-height: 0;
+  border-radius: 5px;
+}
+
+.icon-action + .icon-action {
+  margin-left: 2px;
+}
+
+.icon-action:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--line);
+  background: var(--bg);
+}
+
+.icon-action.danger:hover:not(:disabled) {
+  color: var(--error);
+  border-color: var(--error);
+  background: var(--error-soft);
+}
+
+.icon-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* An editor opened inside a table row: it spans every column, so it needs its own layout rather
+   than inheriting the cell's. */
+.row-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px 14px;
+  align-items: start;
+}
+
+/* A filter that has been applied, shown as what it is rather than as an empty-looking box. */
+.chosen-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.filter-search {
+  display: inline-block;
+  min-width: 150px;
+}
+
+.filter-search input {
+  width: 100%;
+}
+
+/* The label and its control need air between them; a bare `Show` ran into the select. */
+.filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The affirmative action, and the only coloured icon: on a worklist row Complete is the job and
+   the other three are exceptions to it. */
+.icon-action.confirm {
+  color: var(--accent);
+}
+
+.icon-action.confirm:hover:not(:disabled),
+.icon-action.confirm.is-active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── lorry receipts ──────────────────────────────────────────────────────────
+   Two lines per receipt, matching the density the intake list settled on: the
+   register is scanned far more often than it is read, and a card per receipt
+   put four on a screen. */
+
+.lr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A grid, not a flex row. In a register the eye runs DOWN a column -- all the numbers, then
+   all the dates -- and a flex row puts each of those at a different x depending on how long
+   the previous field happened to be, which is what made the first version hard to scan. */
+.lr-row {
+  display: grid;
+  /* The actions column is a FIXED width, not auto. A booked receipt shows six icons and a
+     cancelled one shows three, so an auto column is a different width on every row -- which
+     drags the amount beside it left and right and undoes the point of using a grid. 178px is
+     six icons at 27px plus their gaps. */
+  grid-template-columns: 88px 100px 112px minmax(0, 1fr) 104px 178px;
+  align-items: baseline;
+  column-gap: 18px;
+  /* The two lines are one record, so they sit closer to each other than rows do to their
+     neighbours -- but 2px read as a single wrapped line rather than a headline and its
+     detail. */
+  row-gap: 7px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.lr-row:hover {
+  border-color: #c8d3e0;
+}
+
+@media (max-width: 900px) {
+  .lr-row {
+    grid-template-columns: 82px 1fr auto;
+  }
+}
+
+/* Money and actions are the two columns the eye returns to, so keep them together at the
+   right edge rather than letting the route stretch between them. */
+.lr-money {
+  padding-right: 4px;
+}
+
+/* The facts under the headline, across the full width and visibly subordinate. */
+.lr-secondary {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* Separators between the facts, so an absent one leaves no orphaned dot -- omit what is
+   missing rather than printing a placeholder for it. */
+.lr-secondary > span + span::before {
+  content: '·';
+  margin-right: 16px;
+  color: var(--line);
+}
+
+.lr-parties {
+  color: var(--ink);
+}
+
+.lr-truck {
+  font-variant-numeric: tabular-nums;
+}
+
+.lr-number {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.lr-date {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lr-route {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lr-route strong {
+  font-weight: 550;
+}
+
+.arrow {
+  color: var(--ink-soft);
+  margin: 0 5px;
+}
+
+/* Right-aligned and tabular so the column reads as a column of money. */
+.lr-money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lr-cancelled {
+  color: var(--error);
+}
+
+.lr-search {
+  min-width: 280px;
+  flex: 1 1 280px;
+}
+
+/* The receipt filters are five controls wide. Given their own surface they read as one band
+   of controls rather than as things scattered between the tiles and the list. */
+.lr-filters {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  gap: 16px;
+}
+
+.lr-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.lr-filters label.check {
+  gap: 6px;
+}
+
+/* justify-self, or the grid stretches the pill to the full column width and it stops
+   reading as a chip. */
+.lr-status {
+  justify-self: start;
+  font-size: 12px;
+  padding: 1px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.lr-status.s-booked {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.lr-status.s-in_transit {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: transparent;
+}
+
+.lr-status.s-delivered {
+  background: var(--ok-soft);
+  color: var(--ok);
+  border-color: transparent;
+}
+
+.lr-status.s-cancelled {
+  background: var(--error-soft);
+  color: var(--error);
+  border-color: transparent;
+}
+
+/* Right-aligned inside its fixed column, so the icons that ARE present end at the same edge
+   on every row however many of them there are. */
+.lr-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.lr-cancel-box {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lr-cancel-box input {
+  flex: 1 1 auto;
+}
+
+.lr-form fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px 12px;
+  margin: 0 0 10px;
+}
+
+.lr-form legend {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  padding: 0 4px;
+}
+
+.lr-sum {
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* ── the printed document ────────────────────────────────────────────────────
+   Printing is the browser's job, not a server-side PDF: a PDF library would be a
+   second place the layout can be wrong, to produce something the operator prints
+   anyway. `#print-root` is off-screen until `body.printing` is set. */
+
+#print-root {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+}
+
+@media print {
+  /* Hide the application, not the document. `display: none` on a common ancestor would take
+     #print-root with it, which is how this kind of print stylesheet usually fails. */
+  body.printing > #root {
+    display: none;
+  }
+
+  body.printing #print-root {
+    position: static;
+    left: auto;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  .lr-doc {
+    page-break-after: always;
+    border: 1px solid #000;
+    padding: 10mm;
+    font-size: 11pt;
+    color: #000;
+  }
+
+  /* Without this the second copy emits a trailing blank sheet. */
+  .lr-doc:last-child {
+    page-break-after: auto;
+  }
+}
+
+.lr-doc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #000;
+  padding-bottom: 4mm;
+}
+
+.lr-doc-head h2 {
+  margin: 0;
+  font-size: 16pt;
+  letter-spacing: 0.04em;
+}
+
+.lr-doc-copy {
+  margin: 1mm 0 0;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lr-doc-id {
+  text-align: right;
+}
+
+.lr-doc-id p {
+  margin: 0;
+}
+
+.lr-doc-void {
+  margin-top: 2mm !important;
+  border: 2px solid #000;
+  padding: 0 3mm;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.lr-doc-parties {
+  display: flex;
+  gap: 8mm;
+  margin: 4mm 0;
+}
+
+.lr-doc-parties > div {
+  flex: 1 1 50%;
+}
+
+.lr-doc-parties h3 {
+  margin: 0 0 1mm;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lr-doc-parties p {
+  margin: 0;
+}
+
+.lr-doc-name {
+  font-weight: 600;
+}
+
+.lr-doc-place {
+  margin-top: 1mm !important;
+}
+
+.lr-doc-table,
+.lr-doc-charges {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 4mm;
+}
+
+.lr-doc-table th,
+.lr-doc-table td,
+.lr-doc-charges th,
+.lr-doc-charges td {
+  border: 1px solid #000;
+  padding: 1.5mm 2mm;
+  text-align: left;
+}
+
+.lr-doc-table th,
+.lr-doc-charges th {
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.lr-doc-charges {
+  width: 70mm;
+  margin-left: auto;
+}
+
+.lr-doc-charges td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lr-doc-total th,
+.lr-doc-total td {
+  font-weight: 700;
+}
+
+.lr-doc-note {
+  margin: 0 0 6mm;
+}
+
+.lr-doc-sign {
+  display: flex;
+  justify-content: space-between;
+  gap: 8mm;
+  margin-top: 14mm;
+}
+
+.lr-doc-sign span {
+  flex: 1 1 33%;
+  border-top: 1px solid #000;
+  padding-top: 1.5mm;
+  font-size: 9pt;
+  text-align: center;
+}
+
+/* ── master pick lists ───────────────────────────────────────────────────────
+   One screen, a tab per list. Deliberately plain: these are edited rarely, in a
+   batch, and the only thing that matters is that "Retire" is obviously not
+   "Delete". */
+
+.master-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.master-tab {
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 7px 14px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font: inherit;
+  margin-bottom: -1px;
+}
+
+.master-tab:hover {
+  color: var(--ink);
+}
+
+.master-tab.active {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Fields side by side with the button under them. Not grid-2/3/4: the number of inputs
+   differs per list (one for goods, four for a customer) and a fixed column count would leave
+   the goods tab with three empty cells. */
+.master-add-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  align-items: flex-start;
+}
+
+.master-add-fields .field {
+  flex: 1 1 180px;
+  margin-bottom: 10px;
+}
+
+.master-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.master-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+}
+
+/* Retired rows stay legible rather than greyed into unreadability — the point of showing
+   them at all is that someone is deciding whether to bring one back. */
+.master-row.retired {
+  background: var(--bg);
+}
+
+.master-row.retired .master-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-soft);
+}
+
+.master-name {
+  font-weight: 500;
+}
+
+.master-meta {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.master-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+/* A secondary action tucked under a field, e.g. leaving the picker's free-text mode. */
+.field-aside {
+  align-self: flex-start;
+  padding: 0;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+/* ── lane intelligence ───────────────────────────────────────────────────────
+   Same two-line grid as the receipt register, with its own columns: a lane has
+   no number, no status and no date worth a column, but it does have a season. */
+
+.lane-report h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.lane-top {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.lane-top th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  font-weight: 550;
+  padding: 0 10px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lane-top td {
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lane-top tr:last-child td {
+  border-bottom: none;
+}
+
+.lane-top .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 18px;
+}
+
+.lane-row {
+  display: grid;
+  /* route · goods · company · season · actions */
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 0.9fr) 130px 90px;
+  align-items: baseline;
+  column-gap: 18px;
+  row-gap: 7px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.lane-row:hover {
+  border-color: #c8d3e0;
+}
+
+/* Retired lanes stay readable: the point of showing one is that somebody is deciding whether
+   it is worth another try. */
+.lane-row.retired {
+  background: var(--bg);
+}
+
+@media (max-width: 900px) {
+  .lane-row {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+.lane-route {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lane-route strong {
+  font-weight: 550;
+}
+
+.lane-goods {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lane-company {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.lane-season {
+  font-size: 13px;
+}
+
+/* A chip, so "this lane only runs part of the year" is visible at a glance down the column
+   rather than needing the months to be read. */
+.lane-chip {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-radius: 99px;
+  padding: 1px 9px;
+  white-space: nowrap;
+}
+
+.lane-allyear {
+  color: var(--ink-soft);
+}
+
+/* The flag sits above the months it governs, inside one field. */
+.lane-seasonal {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+/* Attribution, pushed to the end of the detail line — useful, never the point. */
+.lane-by {
+  margin-left: auto;
+  color: var(--ink-soft);
+}
+
+.lane-by::before {
+  content: none !important;
+}
