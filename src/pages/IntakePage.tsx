@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { geo, intake, photoObjectUrl } from '../api/resources'
 import type {
@@ -164,6 +164,7 @@ function IntakeCard({
   capacities: Capacity[]
   onChanged: () => void
 }) {
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -307,6 +308,7 @@ function IntakeCard({
             setEditing(false)
             onChanged()
           }}
+          onCreated={(vehicleId) => navigate(`/vehicles/${vehicleId}`)}
           onCancel={() => setEditing(false)}
         />
       )}
@@ -424,12 +426,14 @@ function Reads({
   bodyTypes,
   capacities,
   onSaved,
+  onCreated,
   onCancel,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
   capacities: Capacity[]
   onSaved: () => void
+  onCreated: (vehicleId: number) => void
   onCancel: () => void
 }) {
   const [plate, setPlate] = useState(row.plate ?? '')
@@ -495,6 +499,36 @@ function Reads({
         places,
       })
       onSaved()
+    } catch (e) {
+      setError(e instanceof ApiError ? e : new ApiError(0, String(e)))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Turns the row into a vehicle. The numbers are assigned by position — driver's, driver's
+  // other, company's — the same order OCR reads them off the truck.
+  async function createVehicle() {
+    setBusy(true)
+    setError(null)
+    try {
+      const [driverMobile, driverAltMobile, companyMobile] = typedMobiles
+      const done = await intake.complete(row.id, {
+        registration_number: plate,
+        body_type_id: Number(bodyTypeId),
+        driver_name: driverName,
+        driver_mobile: driverMobile ?? '',
+        driver_alt_mobile: driverAltMobile ?? null,
+        company_name: company.trim() || null,
+        company_mobile: companyMobile ?? null,
+        no_of_axles: axles === '' ? null : Number(axles),
+        no_of_wheels: wheels === '' ? null : Number(wheels),
+        capacity: capacity || null,
+        length_ft: lengthFt === '' ? null : lengthFt,
+        places,
+      })
+      if (done.vehicle_id) onCreated(done.vehicle_id)
+      else onSaved()
     } catch (e) {
       setError(e instanceof ApiError ? e : new ApiError(0, String(e)))
     } finally {
@@ -576,7 +610,7 @@ function Reads({
         />
       </label>
       <label>
-        <span className="read-label">Length (ft)</span>
+        <span className="read-label">Length (ft) — optional</span>
         <input
           type="number"
           step="0.5"
@@ -592,6 +626,9 @@ function Reads({
       <div className="read-actions">
         <button type="button" className="primary" disabled={busy} onClick={save}>
           Save
+        </button>
+        <button type="button" disabled={busy} onClick={createVehicle}>
+          Create vehicle
         </button>
         <button type="button" className="link" disabled={busy} onClick={onCancel}>
           Cancel
