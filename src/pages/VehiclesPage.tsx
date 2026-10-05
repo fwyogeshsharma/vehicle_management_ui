@@ -419,7 +419,14 @@ function EditVehicleForm({
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(vehicle.body_type_id ?? '')
   const [axles, setAxles] = useState(vehicle.no_of_axles?.toString() ?? '')
   const [wheels, setWheels] = useState(vehicle.no_of_wheels?.toString() ?? '')
-  const [capacity, setCapacity] = useState(vehicle.capacity ?? '')
+  // null = untouched: the saved capacity shows (by id, or by the id of the list entry with the
+  // saved label) until a pick is made; the list may not have arrived when the form opens.
+  const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
+  const capacityId: number | '' =
+    capacityPick ??
+    vehicle.capacity_id ??
+    capacities.find((c) => c.label === vehicle.capacity)?.id ??
+    ''
   const [lengthFt, setLengthFt] = useState(vehicle.length_ft ?? '')
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -474,7 +481,7 @@ function EditVehicleForm({
         body_type_id: Number(bodyTypeId),
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity: capacity.trim() || null,
+        capacity_id: capacityId === '' ? null : capacityId,
         length_ft: lengthFt === '' ? null : lengthFt,
       })
       // Only when touched. Replaces this vehicle's OWN rows; the company's are untouched.
@@ -544,15 +551,14 @@ function EditVehicleForm({
             ))}
           </select>
         </Field>
-        <Field label="Capacity" name="capacity" error={error}>
-          <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
+        <Field label="Capacity" name="capacity_id" error={error}>
+          <select
+            value={capacityId}
+            onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
+          >
             <option value="">Not recorded</option>
-            {/* An imported value that is off the pick list is offered back, never dropped. */}
-            {capacity && !capacities.some((c) => c.label === capacity) && (
-              <option value={capacity}>{capacity} (as recorded)</option>
-            )}
             {capacities.map((c) => (
-              <option key={c.id} value={c.label}>
+              <option key={c.id} value={c.id}>
                 {c.label}
               </option>
             ))}
@@ -785,7 +791,9 @@ function NewVehicleForm({
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(prefill?.body_type_id ?? '')
   const [axles, setAxles] = useState('2')
   const [wheels, setWheels] = useState('6')
-  const [capacity, setCapacity] = useState(prefill?.capacity ?? '')
+  const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
+  const capacityId: number | '' =
+    capacityPick ?? capacities.find((c) => c.label === prefill?.capacity)?.id ?? ''
   const [lengthFt, setLengthFt] = useState('')
 
   // intake mode
@@ -818,7 +826,7 @@ function NewVehicleForm({
   const dimensions = {
     no_of_axles: axles === '' ? null : Number(axles),
     no_of_wheels: wheels === '' ? null : Number(wheels),
-    capacity: capacity || null,
+    capacity_id: capacityId === '' ? null : capacityId,
     length_ft: lengthFt === '' ? null : lengthFt,
   }
 
@@ -1096,14 +1104,15 @@ function NewVehicleForm({
             onChange={(e) => setWheels(e.target.value)}
           />
         </Field>
-        <Field label="Capacity" name="capacity" error={error}>
-          <select value={capacity} onChange={(e) => setCapacity(e.target.value)} required>
+        <Field label="Capacity" name="capacity_id" error={error}>
+          <select
+            value={capacityId}
+            onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
+            required
+          >
             <option value="">Choose…</option>
-            {capacity && !capacities.some((c) => c.label === capacity) && (
-              <option value={capacity}>{capacity} (as recorded)</option>
-            )}
             {capacities.map((c) => (
-              <option key={c.id} value={c.label}>
+              <option key={c.id} value={c.id}>
                 {c.label}
               </option>
             ))}

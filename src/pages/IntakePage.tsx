@@ -446,7 +446,15 @@ function Reads({
   const [company, setCompany] = useState(companyOf(row) ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
-  const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
+  // The id is what is sent. `null` means untouched, so the saved value (its id, or the id of the
+  // list entry carrying the saved label) shows until the CSR picks something — the list may
+  // not have arrived yet when the form opens.
+  const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
+  const capacityId: number | '' =
+    capacityPick ??
+    row.edited_capacity_id ??
+    capacities.find((c) => c.label === row.edited_capacity)?.id ??
+    ''
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
   const [axles, setAxles] = useState(String(row.edited_no_of_axles ?? 2))
   const [wheels, setWheels] = useState(String(row.edited_no_of_wheels ?? 6))
@@ -500,7 +508,8 @@ function Reads({
         // 0, not null: null means "not in this request" and would leave the old value. A CSR
         // clearing the dropdown means they no longer know, and that has to be sayable.
         body_type_id: bodyTypeId === '' ? 0 : bodyTypeId,
-        capacity,
+        // 0 clears it, as with body_type_id.
+        capacity_id: capacityId === '' ? 0 : capacityId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
         length_ft: lengthFt === '' ? null : lengthFt,
@@ -529,7 +538,7 @@ function Reads({
         company_mobile: digits(companyMobile) || null,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity: capacity || null,
+        capacity_id: capacityId === '' ? null : capacityId,
         length_ft: lengthFt === '' ? null : lengthFt,
         places,
       })
@@ -589,17 +598,13 @@ function Reads({
       </label>
       <label>
         <span className="read-label">Capacity</span>
-        {/*
-          A pick list, not a constraint. `capacity` is free text — an imported truck may carry
-          "16.5 MT", which is not on this list — so an off-list value is offered back, not dropped.
-        */}
-        <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
+        <select
+          value={capacityId}
+          onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
+        >
           <option value="">Not known yet</option>
-          {capacity && !capacities.some((c) => c.label === capacity) && (
-            <option value={capacity}>{capacity} (as recorded)</option>
-          )}
           {capacities.map((c) => (
-            <option key={c.id} value={c.label}>
+            <option key={c.id} value={c.id}>
               {c.label}
             </option>
           ))}

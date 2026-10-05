@@ -281,7 +281,7 @@ export const vehicles = {
     owner_also_drives?: boolean
     no_of_axles?: number | null
     no_of_wheels?: number | null
-    capacity?: string | null
+    capacity_id?: number | null
     length_ft?: string | number | null
     /** Only for a person-owned vehicle — a company's truck inherits its company's. */
     places?: Place[]
@@ -306,7 +306,7 @@ export const vehicles = {
     company_name?: string | null
     no_of_axles?: number | null
     no_of_wheels?: number | null
-    capacity?: string | null
+    capacity_id?: number | null
     length_ft?: string | number | null
     /**
      * Where it runs. With a `company_name` these become the COMPANY's locations, which every
@@ -322,7 +322,7 @@ export const vehicles = {
       body_type_id: number
       no_of_axles?: number | null
       no_of_wheels?: number | null
-      capacity?: string | null
+      capacity_id?: number | null
       length_ft?: string | number | null
       notes?: string | null
     },
@@ -393,7 +393,7 @@ export const intake = {
       company_mobile?: string | null
       no_of_axles?: number | null
       no_of_wheels?: number | null
-      capacity?: string | null
+      capacity_id?: number | null
       length_ft?: string | number | null
       places?: Place[]
     },
@@ -413,7 +413,7 @@ export const intake = {
       company?: string
       driver_name?: string
       body_type_id?: number | null
-      capacity?: string
+      capacity_id?: number | null
       no_of_axles?: number | null
       no_of_wheels?: number | null
       length_ft?: string | number | null

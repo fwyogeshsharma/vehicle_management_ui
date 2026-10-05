@@ -456,7 +456,14 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   const [bodyTypeId, setBodyTypeId] = useState(vehicle.body_type_id)
   const [axles, setAxles] = useState(String(vehicle.no_of_axles ?? ''))
   const [wheels, setWheels] = useState(String(vehicle.no_of_wheels ?? ''))
-  const [capacity, setCapacity] = useState(vehicle.capacity ?? '')
+  // null = untouched: the saved capacity shows (by id, or by the id of the list entry with the
+  // saved label) until a pick is made; the list may not have arrived when the form opens.
+  const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
+  const capacityId: number | '' =
+    capacityPick ??
+    vehicle.capacity_id ??
+    masters.capacities.find((c) => c.label === vehicle.capacity)?.id ??
+    ''
   const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))
   const [notes, setNotes] = useState(vehicle.notes ?? '')
 
@@ -498,7 +505,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         body_type_id: bodyTypeId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity: capacity || null,
+        capacity_id: capacityId === '' ? null : capacityId,
         length_ft: lengthFt === '' ? null : lengthFt,
         notes: notes || null,
       })
@@ -602,17 +609,17 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
       <div className="grid-2">
         <Field
           label="Capacity"
-          name="capacity"
+          name="capacity_id"
           error={error}
           hint="The tonnage used for sorting is derived from it by the server."
         >
-          <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
+          <select
+            value={capacityId}
+            onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
+          >
             <option value="">Not known</option>
-            {capacity && !masters.capacities.some((c) => c.label === capacity) && (
-              <option value={capacity}>{capacity} (as recorded)</option>
-            )}
             {masters.capacities.map((c) => (
-              <option key={c.id} value={c.label}>
+              <option key={c.id} value={c.id}>
                 {c.label}
               </option>
             ))}
