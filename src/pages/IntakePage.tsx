@@ -50,7 +50,6 @@ export function IntakePage() {
   const counts = useAsync(() => intake.counts(), [])
   const list = useAsync(() => intake.list(tab, page), [tab, page])
   const bodyTypes = useAsync(() => geo.bodyTypes(false), [])
-  const capacities = useAsync(() => geo.capacities(false), [])
 
   function go(next: Record<string, string | null>) {
     const merged = new URLSearchParams(params)
@@ -133,7 +132,6 @@ export function IntakePage() {
           key={row.id}
           row={row}
           bodyTypes={bodyTypes.data ?? []}
-          capacities={capacities.data ?? []}
           onChanged={reloadAll}
         />
       ))}
@@ -158,19 +156,16 @@ export function IntakePage() {
 function IntakeCard({
   row,
   bodyTypes,
-  capacities,
   onChanged,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
-  capacities: Capacity[]
   onChanged: () => void
 }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [viewing, setViewing] = useState<number | null>(null)
-  const [editing, setEditing] = useState(false)
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true)
@@ -252,13 +247,6 @@ function IntakeCard({
             read the plate off a photo the engine gave up on should not have to wait for a retry
             to succeed first -- and on this photo set the engine gives up often.
           */}
-          {row.review_status === 'PENDING' && (
-            <EditAction
-              title={editing ? 'Close the editor' : 'Correct what the photo says'}
-              onClick={() => setEditing((e) => !e)}
-              disabled={busy}
-            />
-          )}
           {row.review_status === 'PENDING' &&
             (row.processing_status === 'DONE' || row.processing_status === 'FAILED') && (
               <ConfirmAction
@@ -273,6 +261,8 @@ function IntakeCard({
                         capacity: row.edited_capacity,
                         driver_name: row.driver_name ?? '',
                         driver_mobile: (row.mobiles ?? [])[0] ?? '',
+                        driver_alt_mobile: (row.mobiles ?? [])[1] ?? '',
+                        company_mobile: (row.mobiles ?? [])[2] ?? '',
                         company_name: companyOf(row) ?? '',
                         places: row.edited_places ?? [],
                       },
@@ -321,19 +311,6 @@ function IntakeCard({
         </div>
       )}
       {error && <Notice kind="error">{error.message}</Notice>}
-
-      {editing && (
-        <Reads
-          row={row}
-          bodyTypes={bodyTypes}
-          capacities={capacities}
-          onSaved={() => {
-            setEditing(false)
-            onChanged()
-          }}
-          onCancel={() => setEditing(false)}
-        />
-      )}
 
       {viewing !== null && (
         <PhotoViewer

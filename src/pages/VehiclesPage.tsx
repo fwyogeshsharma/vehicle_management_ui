@@ -21,6 +21,8 @@ export interface RegisterPrefill {
   capacity: string | null
   driver_name: string
   driver_mobile: string
+  driver_alt_mobile: string
+  company_mobile: string
   company_name: string
   places: Place[]
 }
@@ -32,6 +34,7 @@ export function VehiclesPage() {
   // Arriving from the intake worklist opens the register form straight away.
   const prefill = (useLocation().state as { register?: RegisterPrefill } | null)?.register
   const [adding, setAdding] = useState(prefill !== undefined)
+  const navigate = useNavigate()
 
   const page = Number(params.get('page') ?? 1)
   const pageSize = Number(params.get('page_size') ?? 25)
@@ -106,8 +109,13 @@ export function VehiclesPage() {
       {adding && (
         <NewVehicleForm
           bodyTypes={(bodyTypes.data ?? []).filter((b) => b.active)}
+          capacities={capacities.data ?? []}
           prefill={prefill}
-          onClose={() => setAdding(false)}
+          onClose={() => {
+            setAdding(false)
+            // Cancelling a form opened from a photo goes back to the worklist it came from.
+            if (prefill) navigate('/intake')
+          }}
           onCreated={() => {
             setAdding(false)
             list.reload()
@@ -665,11 +673,13 @@ function Contact({ vehicle }: { vehicle: VehicleSummary }) {
  */
 function NewVehicleForm({
   bodyTypes,
+  capacities,
   prefill,
   onClose,
   onCreated,
 }: {
   bodyTypes: BodyType[]
+  capacities: Capacity[]
   prefill?: RegisterPrefill
   onClose: () => void
   onCreated: () => void
@@ -690,6 +700,9 @@ function NewVehicleForm({
   const [driverName, setDriverName] = useState(prefill?.driver_name ?? '')
   const [driverMobile, setDriverMobile] = useState(prefill?.driver_mobile ?? '')
   const [companyName, setCompanyName] = useState(prefill?.company_name ?? '')
+  // Only a photo carries these; the manual form never asked for them.
+  const [driverAltMobile, setDriverAltMobile] = useState(prefill?.driver_alt_mobile ?? '')
+  const [companyMobile, setCompanyMobile] = useState(prefill?.company_mobile ?? '')
 
   // existing-records mode
   const [ownerKind, setOwnerKind] = useState<'company' | 'user'>('company')
@@ -739,7 +752,9 @@ function NewVehicleForm({
           body_type_id: Number(bodyTypeId),
           driver_name: driverName,
           driver_mobile: driverMobile,
+          driver_alt_mobile: driverAltMobile.trim() || null,
           company_name: companyName.trim() || null,
+          company_mobile: companyMobile.trim() || null,
           places,
           ...dimensions,
         })
@@ -830,6 +845,30 @@ function NewVehicleForm({
               />
             </Field>
           </div>
+
+          {prefill && (
+            <div className="grid-2">
+              <Field
+                label="Driver's other number"
+                name="driver_alt_mobile"
+                error={error}
+                hint="Optional. Another way to reach the same driver."
+              >
+                <input
+                  value={driverAltMobile}
+                  onChange={(e) => setDriverAltMobile(e.target.value)}
+                />
+              </Field>
+              <Field
+                label="Company's number"
+                name="company_mobile"
+                error={error}
+                hint="Optional. The transport office, not the driver."
+              >
+                <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
+              </Field>
+            </div>
+          )}
 
           <Field
             label="Company"
@@ -965,8 +1004,18 @@ function NewVehicleForm({
             onChange={(e) => setWheels(e.target.value)}
           />
         </Field>
-        <Field label="Capacity" name="capacity" error={error} hint="Free text — “20 Ton”.">
-          <input value={capacity} onChange={(e) => setCapacity(e.target.value)} required />
+        <Field label="Capacity" name="capacity" error={error}>
+          <select value={capacity} onChange={(e) => setCapacity(e.target.value)} required>
+            <option value="">Choose…</option>
+            {capacity && !capacities.some((c) => c.label === capacity) && (
+              <option value={capacity}>{capacity} (as recorded)</option>
+            )}
+            {capacities.map((c) => (
+              <option key={c.id} value={c.label}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Length (ft)" name="length_ft" error={error}>
           <input
@@ -980,7 +1029,7 @@ function NewVehicleForm({
 
       <div className="actions">
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Registering…' : 'Register'}
+          {busy ? 'Saving…' : 'Save'}
         </button>
         <button type="button" className="link" onClick={onClose}>
           Cancel
