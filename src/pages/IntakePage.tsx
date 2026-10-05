@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { geo, intake, photoObjectUrl } from '../api/resources'
 import type {
@@ -11,15 +11,13 @@ import type {
   IntakeTab,
   Place,
 } from '../api/types'
-import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
+import { Empty, FormError, Notice, Spinner } from '../components/Form'
 import { Pager } from '../components/Pager'
 import {
   ConfirmAction,
   DeleteAction,
-  EditAction,
   RetryAction,
 } from '../components/RowActions'
-import { PlacesEditor } from '../components/PlacesEditor'
 import { PlacesPicker } from '../components/PlacesPicker'
 import { useAsync } from '../components/useAsync'
 
@@ -166,7 +164,6 @@ function IntakeCard({
   capacities: Capacity[]
   onChanged: () => void
 }) {
-  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -255,7 +252,7 @@ function IntakeCard({
           {row.review_status === 'PENDING' &&
             (row.processing_status === 'DONE' || row.processing_status === 'FAILED') && (
               <ConfirmAction
-                title={editing ? 'Close the form' : 'Review and register the vehicle'}
+                title={editing ? 'Close the form' : 'Correct what the photo says'}
                 active={editing}
                 onClick={() => setEditing((e) => !e)}
                 disabled={busy}
@@ -310,7 +307,6 @@ function IntakeCard({
             setEditing(false)
             onChanged()
           }}
-          onCreated={(vehicleId) => navigate(`/vehicles/${vehicleId}`)}
           onCancel={() => setEditing(false)}
         />
       )}
@@ -428,14 +424,12 @@ function Reads({
   bodyTypes,
   capacities,
   onSaved,
-  onCreated,
   onCancel,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
   capacities: Capacity[]
   onSaved: () => void
-  onCreated: (vehicleId: number) => void
   onCancel: () => void
 }) {
   const [plate, setPlate] = useState(row.plate ?? '')
@@ -445,10 +439,6 @@ function Reads({
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
   const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
-  // Only used when the vehicle is created; a correction to the photo has nowhere to keep them.
-  const [axles, setAxles] = useState('2')
-  const [wheels, setWheels] = useState('6')
-  const [lengthFt, setLengthFt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -506,37 +496,6 @@ function Reads({
     }
   }
 
-  // Save writes the correction to the photo's row; this one turns the row into a vehicle.
-  // The numbers are assigned by position — driver's, driver's other, company's — the same order
-  // OCR reads them off the truck.
-  async function createVehicle() {
-    setBusy(true)
-    setError(null)
-    try {
-      const [driverMobile, driverAltMobile, companyMobile] = typedMobiles
-      const done = await intake.complete(row.id, {
-        registration_number: plate,
-        body_type_id: Number(bodyTypeId),
-        driver_name: driverName,
-        driver_mobile: driverMobile ?? '',
-        driver_alt_mobile: driverAltMobile ?? null,
-        company_name: company.trim() || null,
-        company_mobile: companyMobile ?? null,
-        no_of_axles: axles === '' ? null : Number(axles),
-        no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity: capacity || null,
-        length_ft: lengthFt === '' ? null : lengthFt,
-        places,
-      })
-      if (done.vehicle_id) onCreated(done.vehicle_id)
-      else onSaved()
-    } catch (e) {
-      setError(e instanceof ApiError ? e : new ApiError(0, String(e)))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <div className="intake-reads-editing">
       <FormError error={error} />
@@ -545,9 +504,7 @@ function Reads({
         <input value={plate} onChange={(e) => setPlate(e.target.value)} autoFocus />
       </label>
       <label className="wide">
-        <span className="read-label">
-          Mobiles — driver&rsquo;s, driver&rsquo;s other, company&rsquo;s
-        </span>
+        <span className="read-label">Mobiles</span>
         <input
           value={mobiles}
           onChange={(e) => setMobiles(e.target.value)}
@@ -598,29 +555,6 @@ function Reads({
           ))}
         </select>
       </label>
-      <label>
-        <span className="read-label">Axles</span>
-        <input type="number" min={1} value={axles} onChange={(e) => setAxles(e.target.value)} />
-      </label>
-      <label>
-        <span className="read-label">Wheels</span>
-        <input
-          type="number"
-          min={2}
-          step={2}
-          value={wheels}
-          onChange={(e) => setWheels(e.target.value)}
-        />
-      </label>
-      <label>
-        <span className="read-label">Length (ft)</span>
-        <input
-          type="number"
-          step="0.5"
-          value={lengthFt}
-          onChange={(e) => setLengthFt(e.target.value)}
-        />
-      </label>
       <label className="wide">
         <span className="read-label">Runs in</span>
         <PlacesPicker value={places} onChange={setPlaces} />
@@ -629,9 +563,6 @@ function Reads({
       <div className="read-actions">
         <button type="button" className="primary" disabled={busy} onClick={save}>
           Save
-        </button>
-        <button type="button" disabled={busy} onClick={createVehicle}>
-          Create vehicle
         </button>
         <button type="button" className="link" disabled={busy} onClick={onCancel}>
           Cancel
