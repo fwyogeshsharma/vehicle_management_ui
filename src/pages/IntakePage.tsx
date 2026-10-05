@@ -236,7 +236,7 @@ function IntakeCard({
           screen. Absent facts are simply not shown.
         */}
         <div className="intake-details">
-          <Facts row={row} bodyTypes={bodyTypes} />
+          <Facts row={row} bodyTypes={bodyTypes} capacities={capacities} />
         </div>
 
         <div className="intake-actions">
@@ -331,6 +331,7 @@ function IntakeCard({
         <CompleteForm
           row={row}
           bodyTypes={bodyTypes}
+          capacities={capacities}
           onDone={() => {
             onToggle()
             onChanged()
@@ -455,8 +456,8 @@ function Reads({
   const [mobiles, setMobiles] = useState((row.mobiles ?? []).join(', '))
   const [company, setCompany] = useState(row.company ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
-  const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
+  const [capacityId, setCapacityId] = useState<number | ''>(row.capacity_id ?? '')
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -504,7 +505,7 @@ function Reads({
         // 0, not null: null means "not in this request" and would leave the old value. A CSR
         // clearing the dropdown means they no longer know, and that has to be sayable.
         body_type_id: bodyTypeId === '' ? 0 : bodyTypeId,
-        capacity,
+        capacity_id: capacityId === '' ? 0 : capacityId,
         places,
       })
       onSaved()
@@ -558,18 +559,13 @@ function Reads({
       </label>
       <label>
         <span className="read-label">Capacity</span>
-        {/*
-          A pick list, not a constraint. `capacity` on a vehicle is free text — an imported truck
-          may carry "16.5 MT", which is not on this list and is still valid — so an existing
-          value that is off-list is offered back rather than silently dropped.
-        */}
-        <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
+        <select
+          value={capacityId}
+          onChange={(e) => setCapacityId(e.target.value === '' ? '' : Number(e.target.value))}
+        >
           <option value="">Not known yet</option>
-          {capacity && !capacities.some((c) => c.label === capacity) && (
-            <option value={capacity}>{capacity} (as recorded)</option>
-          )}
           {capacities.map((c) => (
-            <option key={c.id} value={c.label}>
+            <option key={c.id} value={c.id}>
               {c.label}
             </option>
           ))}
@@ -605,16 +601,25 @@ function Reads({
  * genuinely ambiguous out of context — a bare number could be capacity or a phone, a place could
  * be an address — keep a marker.
  */
-function Facts({ row, bodyTypes }: { row: IntakeSummary; bodyTypes: BodyType[] }) {
+function Facts({
+  row,
+  bodyTypes,
+  capacities,
+}: {
+  row: IntakeSummary
+  bodyTypes: BodyType[]
+  capacities: Capacity[]
+}) {
   const mobiles = row.mobiles ?? []
-  const bodyType = bodyTypes.find((b) => b.id === row.edited_body_type_id)?.name
+  const bodyType = bodyTypes.find((b) => b.id === row.body_type_id)?.name
+  const capacityLabel = capacities.find((c) => c.id === row.capacity_id)?.label
   const places = row.edited_places ?? []
 
   const facts = [
     row.company,
     row.driver_name,
     bodyType,
-    row.edited_capacity,
+    capacityLabel,
     places.length > 0 ? `${places.length} location${places.length === 1 ? '' : 's'}` : null,
   ].filter(Boolean) as string[]
 
@@ -958,10 +963,12 @@ function NumbersFromThePhoto({
 function CompleteForm({
   row,
   bodyTypes,
+  capacities,
   onDone,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
+  capacities: Capacity[]
   onDone: () => void
 }) {
   // `row.plate` / `row.mobiles` / `row.company`, NOT the ocr_* columns. The server has already
@@ -970,7 +977,7 @@ function CompleteForm({
   // this form — it silently offered the machine's answer back to the person who had just
   // rejected it.
   const [reg, setReg] = useState(row.plate ?? '')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>('')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
   // The numbers on the truck, best-read first. The first is offered as the driver's and the
   // second as the company's, which is the usual arrangement on a truck's side — but that is a
@@ -983,7 +990,7 @@ function CompleteForm({
   const [companyName, setCompanyName] = useState(row.company ?? '')
   const [axles, setAxles] = useState('2')
   const [wheels, setWheels] = useState('6')
-  const [capacity, setCapacity] = useState('')
+  const [capacity, setCapacity] = useState(capacities.find((c) => c.id === row.capacity_id)?.label ?? '')
   const [lengthFt, setLengthFt] = useState('')
   const [places, setPlaces] = useState<Place[]>([])
   const [error, setError] = useState<ApiError | null>(null)
@@ -1114,7 +1121,17 @@ function CompleteForm({
           <input type="number" step={2} value={wheels} onChange={(e) => setWheels(e.target.value)} />
         </Field>
         <Field label="Capacity" name="capacity" error={error}>
-          <input value={capacity} onChange={(e) => setCapacity(e.target.value)} required />
+          <select value={capacity} onChange={(e) => setCapacity(e.target.value)} required>
+            <option value="">Choose…</option>
+            {capacity && !capacities.some((c) => c.label === capacity) && (
+              <option value={capacity}>{capacity} (as recorded)</option>
+            )}
+            {capacities.map((c) => (
+              <option key={c.id} value={c.label}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Length (ft)" name="length_ft" error={error}>
           <input

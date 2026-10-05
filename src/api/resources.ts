@@ -409,7 +409,8 @@ export const intake = {
       company?: string
       driver_name?: string
       body_type_id?: number | null
-      capacity?: string
+      /** Id on the capacity list; 0 clears it, as with `body_type_id`. */
+      capacity_id?: number | null
       places?: Place[]
     },
   ) => api.patch<IntakeSummary>(`/api/intake/${id}`, body),
