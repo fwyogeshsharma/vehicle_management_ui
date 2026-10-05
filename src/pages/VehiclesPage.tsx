@@ -421,6 +421,34 @@ function EditVehicleForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
 
+  // The contacts the intake form carries. The driver is a user and the company a company, each
+  // with its own record, so editing them here writes to those records. The primary driver
+  // stands in for "the driver" — the one the contact column rings.
+  const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id])
+  const primary = (drivers.data ?? []).find((d) => d.primary) ?? (drivers.data ?? [])[0]
+  const driver = useAsync(
+    () => (primary ? users.get(primary.user_id) : Promise.resolve(null)),
+    [primary?.user_id],
+  )
+  const company = useAsync(
+    () => (vehicle.owner_company_id ? companies.get(vehicle.owner_company_id) : Promise.resolve(null)),
+    [vehicle.owner_company_id],
+  )
+  const [driverName, setDriverName] = useState('')
+  const [driverMobile, setDriverMobile] = useState('')
+  const [driverAlt, setDriverAlt] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [companyMobile, setCompanyMobile] = useState('')
+  useEffect(() => {
+    setDriverName(driver.data?.name ?? '')
+    setDriverMobile(driver.data?.mobile ?? '')
+    setDriverAlt(driver.data?.alt_mobile ?? '')
+  }, [driver.data])
+  useEffect(() => {
+    setCompanyName(company.data?.name ?? '')
+    setCompanyMobile(company.data?.mobile ?? '')
+  }, [company.data])
+
   // `GET /vehicles/{id}/locations` returns the EFFECTIVE set — the company's and the vehicle's
   // own, each tagged with its source. Only the vehicle's own are editable here, so the
   // company's are filtered out; editing them belongs on the company, where the change applies
@@ -449,6 +477,32 @@ function EditVehicleForm({
       if (places !== null) {
         await vehicles.setLocations(vehicle.id, places)
       }
+      // Only the records that changed, each PUT carrying the fields this form does not show.
+      const d = driver.data
+      if (
+        d &&
+        (driverName !== d.name || driverMobile !== d.mobile || driverAlt !== (d.alt_mobile ?? ''))
+      ) {
+        await users.update(d.id, {
+          name: driverName,
+          mobile: driverMobile,
+          alt_mobile: driverAlt || null,
+          email: d.email,
+          city_id: d.city_id,
+          notes: d.notes,
+        })
+      }
+      const c = company.data
+      if (c && (companyName !== c.name || companyMobile !== (c.mobile ?? ''))) {
+        await companies.update(c.id, {
+          name: companyName,
+          mobile: companyMobile || null,
+          email: c.email,
+          gstin: c.gstin,
+          address: c.address,
+          head_office_city_id: c.head_office_city_id,
+        })
+      }
       onSaved()
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, String(err)))
@@ -461,11 +515,14 @@ function EditVehicleForm({
     <form className="inset row-editor" onSubmit={save}>
       <FormError error={error} />
       <p className="muted small">
-        Editing <strong>{vehicle.registration_number}</strong>. The registration, the owner and the
-        drivers are changed from the vehicle&rsquo;s own page — each has consequences a list row
-        cannot show.
+        Editing <strong>{vehicle.registration_number}</strong>. The registration, the owner and
+        which drivers are assigned are changed from the vehicle&rsquo;s own page — each has
+        consequences a list row cannot show.
       </p>
       <div className="row-editor-fields">
+        <Field label="Registration" name="registration_number" error={error}>
+          <input value={vehicle.registration_number} disabled />
+        </Field>
         <Field label="Body type" name="body_type_id" error={error}>
           <select
             value={bodyTypeId}
@@ -507,6 +564,33 @@ function EditVehicleForm({
             onChange={(e) => setLengthFt(e.target.value)}
           />
         </Field>
+        {driver.data && (
+          <>
+            <Field label="Driver's name" name="name" error={error}>
+              <input value={driverName} onChange={(e) => setDriverName(e.target.value)} required />
+            </Field>
+            <Field label="Driver's mobile" name="mobile" error={error}>
+              <input
+                value={driverMobile}
+                onChange={(e) => setDriverMobile(e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Driver's other number — optional" name="alt_mobile" error={error}>
+              <input value={driverAlt} onChange={(e) => setDriverAlt(e.target.value)} />
+            </Field>
+          </>
+        )}
+        {company.data && (
+          <>
+            <Field label="Company name" name="name" error={error}>
+              <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+            </Field>
+            <Field label="Company's number — optional" name="mobile" error={error}>
+              <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
+            </Field>
+          </>
+        )}
       </div>
 
       {/*
