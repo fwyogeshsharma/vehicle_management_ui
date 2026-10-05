@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchAll, ApiError } from '../api/client'
 import { companies, geo, users, vehicles } from '../api/resources'
@@ -459,6 +459,36 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))
   const [notes, setNotes] = useState(vehicle.notes ?? '')
 
+  // The contacts the intake form carries. They are not the vehicle's own columns: the driver is a
+  // user and the company is a company, each with its own record, so editing them here writes to
+  // those records. The primary driver stands in for "the driver" — the same one the contact line
+  // on the vehicle list rings.
+  const capacities = useAsync(() => geo.capacities(false), [])
+  const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id])
+  const primary = (drivers.data ?? []).find((d) => d.primary) ?? (drivers.data ?? [])[0]
+  const driver = useAsync(
+    () => (primary ? users.get(primary.user_id) : Promise.resolve(null)),
+    [primary?.user_id],
+  )
+  const company = useAsync(
+    () => (vehicle.owner_company_id ? companies.get(vehicle.owner_company_id) : Promise.resolve(null)),
+    [vehicle.owner_company_id],
+  )
+  const [driverName, setDriverName] = useState('')
+  const [driverMobile, setDriverMobile] = useState('')
+  const [driverAlt, setDriverAlt] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [companyMobile, setCompanyMobile] = useState('')
+  useEffect(() => {
+    setDriverName(driver.data?.name ?? '')
+    setDriverMobile(driver.data?.mobile ?? '')
+    setDriverAlt(driver.data?.alt_mobile ?? '')
+  }, [driver.data])
+  useEffect(() => {
+    setCompanyName(company.data?.name ?? '')
+    setCompanyMobile(company.data?.mobile ?? '')
+  }, [company.data])
+
   async function save(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -472,6 +502,33 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         length_ft: lengthFt === '' ? null : lengthFt,
         notes: notes || null,
       })
+      // Only the records that actually changed are written, and each PUT carries the fields
+      // this form does not show unchanged — a PUT that omitted them would blank them.
+      const d = driver.data
+      if (
+        d &&
+        (driverName !== d.name || driverMobile !== d.mobile || driverAlt !== (d.alt_mobile ?? ''))
+      ) {
+        await users.update(d.id, {
+          name: driverName,
+          mobile: driverMobile,
+          alt_mobile: driverAlt || null,
+          email: d.email,
+          city_id: d.city_id,
+          notes: d.notes,
+        })
+      }
+      const c = company.data
+      if (c && (companyName !== c.name || companyMobile !== (c.mobile ?? ''))) {
+        await companies.update(c.id, {
+          name: companyName,
+          mobile: companyMobile || null,
+          email: c.email,
+          gstin: c.gstin,
+          address: c.address,
+          head_office_city_id: c.head_office_city_id,
+        })
+      }
       setEditing(false)
       onSaved()
     } catch (e) {
@@ -513,6 +570,14 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
     <form className="card" onSubmit={save}>
       <h2>Details</h2>
       <FormError error={error} />
+      <Field
+        label="Registration number"
+        name="registration_number"
+        error={error}
+        hint="Fixed once registered — the API has no call to change it."
+      >
+        <input value={vehicle.registration_number} disabled />
+      </Field>
       <Field label="Body type" name="body_type_id" error={error}>
         <select value={bodyTypeId} onChange={(e) => setBodyTypeId(Number(e.target.value))}>
           {(bodyTypes.data ?? []).map((b) => (
@@ -535,9 +600,19 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           label="Capacity"
           name="capacity"
           error={error}
-          hint="Free text. The tonnage used for sorting is derived from it by the server."
+          hint="The tonnage used for sorting is derived from it by the server."
         >
-          <input value={capacity} onChange={(e) => setCapacity(e.target.value)} />
+          <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
+            <option value="">Not known</option>
+            {capacity && !(capacities.data ?? []).some((c) => c.label === capacity) && (
+              <option value={capacity}>{capacity} (as recorded)</option>
+            )}
+            {(capacities.data ?? []).map((c) => (
+              <option key={c.id} value={c.label}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Length (ft)" name="length_ft" error={error}>
           <input
@@ -548,6 +623,39 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           />
         </Field>
       </div>
+      {driver.data && (
+        <fieldset>
+          <legend>Driver</legend>
+          <div className="grid-2">
+            <Field label="Driver's name" name="name" error={error}>
+              <input value={driverName} onChange={(e) => setDriverName(e.target.value)} required />
+            </Field>
+            <Field label="Driver's mobile" name="mobile" error={error}>
+              <input
+                value={driverMobile}
+                onChange={(e) => setDriverMobile(e.target.value)}
+                required
+              />
+            </Field>
+          </div>
+          <Field label="Driver's other number" name="alt_mobile" error={error} hint="Optional.">
+            <input value={driverAlt} onChange={(e) => setDriverAlt(e.target.value)} />
+          </Field>
+        </fieldset>
+      )}
+      {company.data && (
+        <fieldset>
+          <legend>Company</legend>
+          <div className="grid-2">
+            <Field label="Company name" name="name" error={error}>
+              <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+            </Field>
+            <Field label="Company's number" name="mobile" error={error} hint="Optional.">
+              <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
+            </Field>
+          </div>
+        </fieldset>
+      )}
       <Field label="Notes" name="notes" error={error}>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </Field>

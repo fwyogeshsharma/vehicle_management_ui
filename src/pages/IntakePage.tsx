@@ -437,7 +437,12 @@ function Reads({
   onCancel: () => void
 }) {
   const [plate, setPlate] = useState(row.plate ?? '')
-  const [mobiles, setMobiles] = useState((row.mobiles ?? []).join(', '))
+  // The numbers on the truck, best-read first: the first is offered as the driver's and the
+  // second as the company's, the usual arrangement on a truck's side. That is a guess about
+  // WHOSE number each is, so every box is editable.
+  const [driverMobile, setDriverMobile] = useState((row.mobiles ?? [])[0] ?? '')
+  const [companyMobile, setCompanyMobile] = useState((row.mobiles ?? [])[1] ?? '')
+  const [driverAltMobile, setDriverAltMobile] = useState((row.mobiles ?? [])[2] ?? '')
   const [company, setCompany] = useState(companyOf(row) ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
@@ -455,7 +460,10 @@ function Reads({
   // Debounced, and every stale answer discarded: without the `live` guard a slow reply for
   // "Kumar Road" lands after the fast one for "Kumar Roadways" and tells the CSR the opposite of
   // the truth about what they currently have typed.
-  const typedMobiles = mobiles.split(/[^0-9]+/).filter((m) => m.length === 10)
+  const digits = (s: string) => s.replace(/[^0-9]/g, '')
+  const typedMobiles = [driverMobile, companyMobile, driverAltMobile]
+    .map(digits)
+    .filter((m) => m.length === 10)
   const mobileKey = typedMobiles.join(',')
   useEffect(() => {
     if (!company.trim() && typedMobiles.length === 0) {
@@ -483,10 +491,10 @@ function Reads({
     try {
       await intake.correct(row.id, {
         plate,
-        // Split on anything that is not a digit, so "9878770969, 8437036313" and
-        // "9878770969 / 8437036313" both work — a CSR pasting from a photo should not have to
-        // think about the separator.
-        mobiles: mobiles.split(/[^0-9]+/).filter(Boolean),
+        // One list on the wire, in the order the form reads it back: driver's, company's,
+        // driver's other. A blank box is dropped, so the order is only kept while the earlier
+        // ones are filled.
+        mobiles: [driverMobile, companyMobile, driverAltMobile].map(digits).filter(Boolean),
         company,
         driver_name: driverName,
         // 0, not null: null means "not in this request" and would leave the old value. A CSR
@@ -506,21 +514,19 @@ function Reads({
     }
   }
 
-  // Turns the row into a vehicle. The numbers are assigned by position — driver's, driver's
-  // other, company's — the same order OCR reads them off the truck.
+  // Turns the row into a vehicle.
   async function createVehicle() {
     setBusy(true)
     setError(null)
     try {
-      const [driverMobile, driverAltMobile, companyMobile] = typedMobiles
       const done = await intake.complete(row.id, {
         registration_number: plate,
         body_type_id: Number(bodyTypeId),
         driver_name: driverName,
-        driver_mobile: driverMobile ?? '',
-        driver_alt_mobile: driverAltMobile ?? null,
+        driver_mobile: digits(driverMobile),
+        driver_alt_mobile: digits(driverAltMobile) || null,
         company_name: company.trim() || null,
-        company_mobile: companyMobile ?? null,
+        company_mobile: digits(companyMobile) || null,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
         capacity: capacity || null,
@@ -543,17 +549,13 @@ function Reads({
         <span className="read-label">Registration</span>
         <input value={plate} onChange={(e) => setPlate(e.target.value)} autoFocus />
       </label>
-      <label className="wide">
-        <span className="read-label">Mobiles</span>
-        <input
-          value={mobiles}
-          onChange={(e) => setMobiles(e.target.value)}
-          placeholder="9878770969, 8437036313"
-        />
-      </label>
       <label>
         <span className="read-label">Company name</span>
         <input value={company} onChange={(e) => setCompany(e.target.value)} />
+      </label>
+      <label>
+        <span className="read-label">Company&rsquo;s number — optional</span>
+        <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
       </label>
       <label>
         <span className="read-label">Driver&rsquo;s name</span>
@@ -562,6 +564,14 @@ function Reads({
           onChange={(e) => setDriverName(e.target.value)}
           placeholder="ask on the call"
         />
+      </label>
+      <label>
+        <span className="read-label">Driver&rsquo;s mobile</span>
+        <input value={driverMobile} onChange={(e) => setDriverMobile(e.target.value)} />
+      </label>
+      <label>
+        <span className="read-label">Driver&rsquo;s other number — optional</span>
+        <input value={driverAltMobile} onChange={(e) => setDriverAltMobile(e.target.value)} />
       </label>
       <label>
         <span className="read-label">Body type</span>
