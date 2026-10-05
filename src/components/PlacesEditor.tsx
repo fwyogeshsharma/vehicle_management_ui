@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
-import { geo } from '../api/resources'
 import type { City, Place, State } from '../api/types'
-import { useAsync } from './useAsync'
+import { useMasters } from './useMasters'
 
 /**
  * Editing a set of "where does this run?" rows.
@@ -11,8 +9,9 @@ import { useAsync } from './useAsync'
  * cities individually, so the control says so rather than leaving a blank dropdown to be
  * interpreted.
  *
- * The city list is fetched per state and the choice is reset when the state changes: the API
- * refuses "Nagpur, Gujarat" with a 422, and offering the combination at all would be inviting it.
+ * States and their cities come from the masters call, and the choice is reset when the state
+ * changes: the API refuses "Nagpur, Gujarat" with a 422, and offering the combination at all
+ * would be inviting it.
  */
 export function PlacesEditor({
   value,
@@ -23,10 +22,10 @@ export function PlacesEditor({
   onChange: (places: Place[]) => void
   disabled?: boolean
 }) {
-  const states = useAsync(() => geo.states(), [])
+  const masters = useMasters()
 
   function add() {
-    const first = states.data?.[0]
+    const first = masters.states[0]
     if (!first) return
     onChange([...value, { state_id: first.id, city_id: null }])
   }
@@ -43,13 +42,14 @@ export function PlacesEditor({
         <PlaceRow
           key={i}
           place={place}
-          states={states.data ?? []}
+          states={masters.states}
+          cities={masters.cities.filter((c) => c.state_id === place.state_id)}
           disabled={disabled}
           onChange={(next) => onChange(value.map((p, j) => (i === j ? next : p)))}
           onRemove={() => onChange(value.filter((_, j) => j !== i))}
         />
       ))}
-      <button type="button" onClick={add} disabled={disabled || !states.data}>
+      <button type="button" onClick={add} disabled={disabled || !masters.loaded}>
         + Add a location
       </button>
     </div>
@@ -59,29 +59,18 @@ export function PlacesEditor({
 function PlaceRow({
   place,
   states,
+  cities,
   disabled,
   onChange,
   onRemove,
 }: {
   place: Place
   states: State[]
+  cities: City[]
   disabled?: boolean
   onChange: (place: Place) => void
   onRemove: () => void
 }) {
-  const [cities, setCities] = useState<City[]>([])
-
-  useEffect(() => {
-    let live = true
-    geo
-      .citiesOfState(place.state_id)
-      .then((list) => live && setCities(list))
-      .catch(() => live && setCities([]))
-    return () => {
-      live = false
-    }
-  }, [place.state_id])
-
   return (
     <div className="place-row">
       <select

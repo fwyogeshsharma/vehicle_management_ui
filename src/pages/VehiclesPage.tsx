@@ -9,6 +9,7 @@ import { PlacesEditor } from '../components/PlacesEditor'
 import { PlacesPicker } from '../components/PlacesPicker'
 import { DeleteAction, EditAction, RestoreAction } from '../components/RowActions'
 import { useAsync, useDebounced } from '../components/useAsync'
+import { useMasters } from '../components/useMasters'
 
 /** Only keys the API whitelists: an unknown `sort` is a 422, not a silent fallback. */
 const SORTS = ['registration_number', 'capacity_tons', 'created_at', 'id']
@@ -62,7 +63,10 @@ export function VehiclesPage() {
   }
 
   const bodyTypes = useAsync(() => geo.bodyTypes(true), [])
-  const capacities = useAsync(() => geo.capacities(false), [])
+  // The names and the filter still use the full list: a truck can carry a body type that has
+  // since been retired, and the table has to name it. What a form may OFFER comes from the
+  // masters call.
+  const masters = useMasters()
   const list = useAsync(
     () =>
       vehicles.list({
@@ -108,8 +112,8 @@ export function VehiclesPage() {
 
       {adding && (
         <NewVehicleForm
-          bodyTypes={(bodyTypes.data ?? []).filter((b) => b.active)}
-          capacities={capacities.data ?? []}
+          bodyTypes={masters.bodyTypes}
+          capacities={masters.capacities}
           prefill={prefill}
           onClose={() => {
             setAdding(false)
@@ -247,8 +251,8 @@ export function VehiclesPage() {
                     key={v.id}
                     vehicle={v}
                     bodyTypeName={byId.get(v.body_type_id)}
-                    bodyTypes={(bodyTypes.data ?? []).filter((b) => b.active)}
-                    capacities={(capacities.data ?? []).filter((c) => c.active)}
+                    bodyTypes={masters.bodyTypes}
+                    capacities={masters.capacities}
                     onChanged={list.reload}
                   />
                 ))}
@@ -529,6 +533,10 @@ function EditVehicleForm({
             onChange={(e) => setBodyTypeId(e.target.value === '' ? '' : Number(e.target.value))}
             required
           >
+            {/* A body type retired since this truck was registered is kept selectable. */}
+            {bodyTypeId !== '' && !bodyTypes.some((b) => b.id === bodyTypeId) && (
+              <option value={bodyTypeId}>Current type (retired)</option>
+            )}
             {bodyTypes.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}

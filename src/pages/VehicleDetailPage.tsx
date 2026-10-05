@@ -6,6 +6,7 @@ import type { Place, VehicleDetail } from '../api/types'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
 import { PlacesEditor, placeLabel } from '../components/PlacesEditor'
 import { useAsync } from '../components/useAsync'
+import { useMasters } from '../components/useMasters'
 
 export function VehicleDetailPage() {
   const id = Number(useParams().id)
@@ -447,7 +448,7 @@ function LocationsCard({ vehicle }: { vehicle: VehicleDetail }) {
 }
 
 function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved: () => void }) {
-  const bodyTypes = useAsync(() => geo.bodyTypes(false), [])
+  const masters = useMasters()
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [busy, setBusy] = useState(false)
@@ -463,7 +464,6 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   // user and the company is a company, each with its own record, so editing them here writes to
   // those records. The primary driver stands in for "the driver" — the same one the contact line
   // on the vehicle list rings.
-  const capacities = useAsync(() => geo.capacities(false), [])
   const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id])
   const primary = (drivers.data ?? []).find((d) => d.primary) ?? (drivers.data ?? [])[0]
   const driver = useAsync(
@@ -580,7 +580,11 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
       </Field>
       <Field label="Body type" name="body_type_id" error={error}>
         <select value={bodyTypeId} onChange={(e) => setBodyTypeId(Number(e.target.value))}>
-          {(bodyTypes.data ?? []).map((b) => (
+          {/* A body type retired since this truck was registered is kept selectable. */}
+          {!masters.bodyTypes.some((b) => b.id === bodyTypeId) && (
+            <option value={bodyTypeId}>Current type (retired)</option>
+          )}
+          {masters.bodyTypes.map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
             </option>
@@ -604,10 +608,10 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         >
           <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
             <option value="">Not known</option>
-            {capacity && !(capacities.data ?? []).some((c) => c.label === capacity) && (
+            {capacity && !masters.capacities.some((c) => c.label === capacity) && (
               <option value={capacity}>{capacity} (as recorded)</option>
             )}
-            {(capacities.data ?? []).map((c) => (
+            {masters.capacities.map((c) => (
               <option key={c.id} value={c.label}>
                 {c.label}
               </option>

@@ -36,6 +36,7 @@ import type {
   CompanySummary,
   EffectiveLocation,
   LeftCompany,
+  Masters,
   Membership,
   OwnerChanged,
   Page,
@@ -67,6 +68,9 @@ export const auth = {
 // ── reference data ──────────────────────────────────────────────────────────
 
 export const geo = {
+  /** States with their cities, capacities, body types and goods types — in one call. */
+  masters: () => api.get<Masters>('/api/masters'),
+
   states: () => api.get<State[]>('/api/states'),
 
   citiesOfState: (stateId: number) => api.get<City[]>(`/api/states/${stateId}/cities`),

@@ -7,6 +7,7 @@ import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
 import { Pager } from '../components/Pager'
 import { DeleteAction, EditAction, RestoreAction } from '../components/RowActions'
 import { useAsync, useDebounced } from '../components/useAsync'
+import { useMasters } from '../components/useMasters'
 
 const SORTS = ['created_at', 'from_place', 'to_place', 'goods', 'id']
 
@@ -246,7 +247,7 @@ function LaneForm({
   const [error, setError] = useState<ApiError | null>(null)
   const [busy, setBusy] = useState(false)
   const goods = useAsync(() => goodsTypes.list(false), [])
-  const bodyTypes = useAsync(() => geo.bodyTypes(false), [])
+  const masters = useMasters()
   // Suggestions only. Typing a company that is not a customer is normal here -- most lanes
   // are somebody else's business, which is the point of writing them down.
   const parties = useAsync(
@@ -364,7 +365,7 @@ function LaneForm({
               }
             >
               <option value="">—</option>
-              {(bodyTypes.data ?? []).map((b) => (
+              {masters.bodyTypes.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
                 </option>

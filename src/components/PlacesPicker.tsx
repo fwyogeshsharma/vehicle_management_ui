@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { geo } from '../api/resources'
-import type { City, Place, State } from '../api/types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { City, Place } from '../api/types'
+import { useMasters } from './useMasters'
 
 /**
  * Where a truck runs, picked by typing.
@@ -11,7 +11,8 @@ import type { City, Place, State } from '../api/types'
  * making them answer a question the system can answer for them is the difference between typing
  * four letters and scrolling a list of thirty-six.
  *
- * <p>So: one box, type-ahead across every state at once, backed by `GET /api/cities?q=`. Results
+ * <p>So: one box, type-ahead across every state at once, over the cities from `GET /api/masters`.
+ * Results
  * always carry their state, because <b>several states have a city of the same name</b> — there
  * are Aurangabads in Maharashtra and Bihar — and a list that showed bare names would be asking
  * the CSR to guess.
@@ -29,72 +30,29 @@ export function PlacesPicker({
   disabled?: boolean
 }) {
   const [term, setTerm] = useState('')
-  const [matches, setMatches] = useState<City[]>([])
-  const [states, setStates] = useState<State[]>([])
   const [open, setOpen] = useState(false)
-  // id -> name for every city this component has ever seen, from a search or from resolving a
-  // place that arrived from the server. Chips outlive the search that produced them, and without
-  // this the label falls back to the id — which this codebase has printed at a user before.
-  const [cityNames, setCityNames] = useState<Record<number, string>>({})
   const box = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    geo.states().then(setStates).catch(() => setStates([]))
-  }, [])
+  // Every state and city arrives in the one masters call, so there is nothing to search remotely
+  // and nothing to resolve: a chip's city name is a lookup, never a request, and never an id.
+  const { states, cities } = useMasters()
+  const cityNames = useMemo(
+    () => Object.fromEntries(cities.map((c) => [c.id, c.name])) as Record<number, string>,
+    [cities],
+  )
 
-  // Resolve any city that came in on `value` but whose name we have never seen. The API has no
-  // "get one city" endpoint, so this fetches the referenced state's cities — one request per
-  // state, once, exactly as CompanyDetailPage does.
-  const unresolved = value
-    .map((p) => p.city_id)
-    .filter((id): id is number => id !== null && cityNames[id] === undefined)
-  const unresolvedKey = unresolved.join(',')
-  useEffect(() => {
-    if (unresolved.length === 0) return
-    const statesToFetch = [
-      ...new Set(value.filter((p) => p.city_id && !cityNames[p.city_id]).map((p) => p.state_id)),
-    ]
-    let live = true
-    Promise.all(statesToFetch.map((id) => geo.citiesOfState(id).catch(() => [] as City[])))
-      .then((lists) => {
-        if (!live) return
-        const found: Record<number, string> = {}
-        for (const list of lists) for (const c of list) found[c.id] = c.name
-        setCityNames((prev) => ({ ...found, ...prev }))
-      })
-    return () => {
-      live = false
-    }
-  }, [unresolvedKey])
-
-  // Debounced, and every stale answer discarded: without the `live` guard the reply for "Lud"
-  // can land after the reply for "Ludhi" and replace a good list with a worse one.
-  useEffect(() => {
-    const q = term.trim()
-    if (q.length < 2) {
-      setMatches([])
-      return
-    }
-    let live = true
-    const timer = setTimeout(() => {
-      geo
-        .searchCities(q, null, 8)
-        .then((page) => {
-          if (!live) return
-          setMatches(page.items)
-          setCityNames((prev) => {
-            const next = { ...prev }
-            for (const c of page.items) next[c.id] = c.name
-            return next
-          })
-        })
-        .catch(() => live && setMatches([]))
-    }, 250)
-    return () => {
-      live = false
-      clearTimeout(timer)
-    }
-  }, [term])
+  // Matches by name prefix first, then by containing the text, eight at most.
+  const q = term.trim().toLowerCase()
+  const matches: City[] =
+    q.length < 2
+      ? []
+      : [
+          ...cities.filter((c) => c.name.toLowerCase().startsWith(q)),
+          ...cities.filter((c) => {
+            const n = c.name.toLowerCase()
+            return !n.startsWith(q) && n.includes(q)
+          }),
+        ].slice(0, 8)
 
   useEffect(() => {
     function away(e: MouseEvent) {
@@ -108,13 +66,9 @@ export function PlacesPicker({
   const already = (p: Place) =>
     value.some((v) => v.state_id === p.state_id && v.city_id === p.city_id)
 
-  function add(place: Place, name?: string) {
-    if (place.city_id && name) {
-      setCityNames((prev) => ({ ...prev, [place.city_id as number]: name }))
-    }
+  function add(place: Place) {
     if (!already(place)) onChange([...value, place])
     setTerm('')
-    setMatches([])
     setOpen(false)
   }
 
@@ -169,7 +123,7 @@ export function PlacesPicker({
                 <li key={`c${c.id}`}>
                   <button
                     type="button"
-                    onClick={() => add({ state_id: c.state_id, city_id: c.id }, c.name)}
+                    onClick={() => add({ state_id: c.state_id, city_id: c.id })}
                   >
                     {c.name}
                     {/* The state is not decoration: there are two Aurangabads. */}

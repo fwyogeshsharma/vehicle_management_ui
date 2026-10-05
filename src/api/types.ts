@@ -231,6 +231,20 @@ export interface BodyType {
   active: boolean
 }
 
+/**
+ * `GET /api/masters` — every pick list in one call, as the wire sends it.
+ *
+ * Leaner than the per-list endpoints: no `active` flags, and a city has no `state_id` because it
+ * is nested under its state. `useMasters` fills those in for the components that expect the
+ * fuller shapes.
+ */
+export interface Masters {
+  states: { id: number; code: string; name: string; cities: { id: number; name: string }[] }[]
+  capacities: { id: number; label: string; tons: number | string }[]
+  body_types: { id: number; name: string }[]
+  goods_types: { id: number; name: string }[]
+}
+
 // ── auth ────────────────────────────────────────────────────────────────────
 
 export interface Session {

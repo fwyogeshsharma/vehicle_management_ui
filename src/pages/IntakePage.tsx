@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { geo, intake, photoObjectUrl } from '../api/resources'
+import { intake, photoObjectUrl } from '../api/resources'
 import type {
   BodyType,
   Capacity,
@@ -20,6 +20,7 @@ import {
 } from '../components/RowActions'
 import { PlacesPicker } from '../components/PlacesPicker'
 import { useAsync } from '../components/useAsync'
+import { useMasters } from '../components/useMasters'
 
 const TABS: { tab: IntakeTab; label: string }[] = [
   { tab: 'ALL', label: 'Everything' },
@@ -47,8 +48,7 @@ export function IntakePage() {
 
   const counts = useAsync(() => intake.counts(), [])
   const list = useAsync(() => intake.list(tab, page), [tab, page])
-  const bodyTypes = useAsync(() => geo.bodyTypes(false), [])
-  const capacities = useAsync(() => geo.capacities(false), [])
+  const masters = useMasters()
 
   function go(next: Record<string, string | null>) {
     const merged = new URLSearchParams(params)
@@ -130,8 +130,8 @@ export function IntakePage() {
         <IntakeCard
           key={row.id}
           row={row}
-          bodyTypes={bodyTypes.data ?? []}
-          capacities={capacities.data ?? []}
+          bodyTypes={masters.bodyTypes}
+          capacities={masters.capacities}
           onChanged={reloadAll}
         />
       ))}

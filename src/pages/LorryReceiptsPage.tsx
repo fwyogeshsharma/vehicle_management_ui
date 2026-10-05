@@ -16,6 +16,7 @@ import { Empty, Field, FormError, Spinner } from '../components/Form'
 import { Pager } from '../components/Pager'
 import { ConfirmAction, DeleteAction, EditAction } from '../components/RowActions'
 import { useAsync, useDebounced } from '../components/useAsync'
+import { useMasters } from '../components/useMasters'
 import { LrDocument } from '../components/LrDocument'
 
 /** Only keys the API whitelists: an unknown `sort` is a 422, not a silent fallback. */
@@ -400,7 +401,7 @@ function ReceiptForm({
       customers.list({ active: true, page, page_size, sort: 'name' })),
     [],
   )
-  const bodyTypes = useAsync(() => geo.bodyTypes(false), [])
+  const masters = useMasters()
 
   const [form, setForm] = useState<LrSaveRequest>(() =>
     existing
@@ -623,7 +624,7 @@ function ReceiptForm({
               }
             >
               <option value="">—</option>
-              {(bodyTypes.data ?? []).map((b) => (
+              {masters.bodyTypes.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
                 </option>
