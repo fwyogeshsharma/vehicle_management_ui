@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { geo, intake, photoObjectUrl } from '../api/resources'
 import type {
@@ -46,7 +46,6 @@ export function IntakePage() {
   const [params, setParams] = useSearchParams()
   const tab = (params.get('tab') ?? 'ALL') as IntakeTab
   const page = Number(params.get('page') ?? 1)
-  const [openId, setOpenId] = useState<number | null>(null)
 
   const counts = useAsync(() => intake.counts(), [])
   const list = useAsync(() => intake.list(tab, page), [tab, page])
@@ -135,8 +134,6 @@ export function IntakePage() {
           row={row}
           bodyTypes={bodyTypes.data ?? []}
           capacities={capacities.data ?? []}
-          open={openId === row.id}
-          onToggle={() => setOpenId(openId === row.id ? null : row.id)}
           onChanged={reloadAll}
         />
       ))}
@@ -162,17 +159,14 @@ function IntakeCard({
   row,
   bodyTypes,
   capacities,
-  open,
-  onToggle,
   onChanged,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
   capacities: Capacity[]
-  open: boolean
-  onToggle: () => void
   onChanged: () => void
 }) {
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [viewing, setViewing] = useState<number | null>(null)
@@ -236,7 +230,7 @@ function IntakeCard({
           screen. Absent facts are simply not shown.
         */}
         <div className="intake-details">
-          <Facts row={row} bodyTypes={bodyTypes} capacities={capacities} />
+          <Facts row={row} bodyTypes={bodyTypes} />
         </div>
 
         <div className="intake-actions">
@@ -268,9 +262,23 @@ function IntakeCard({
           {row.review_status === 'PENDING' &&
             (row.processing_status === 'DONE' || row.processing_status === 'FAILED') && (
               <ConfirmAction
-                title={open ? 'Close the form' : 'Complete — create the vehicle'}
-                active={open}
-                onClick={onToggle}
+                title="Complete — register the vehicle"
+                onClick={() =>
+                  navigate('/vehicles', {
+                    state: {
+                      register: {
+                        intakeId: row.id,
+                        registration_number: row.plate ?? '',
+                        body_type_id: row.edited_body_type_id,
+                        capacity: row.edited_capacity,
+                        driver_name: row.driver_name ?? '',
+                        driver_mobile: (row.mobiles ?? [])[0] ?? '',
+                        company_name: companyOf(row) ?? '',
+                        places: row.edited_places ?? [],
+                      },
+                    },
+                  })
+                }
                 disabled={busy}
               />
             )}
@@ -327,18 +335,6 @@ function IntakeCard({
         />
       )}
 
-      {open && (
-        <CompleteForm
-          row={row}
-          bodyTypes={bodyTypes}
-          capacities={capacities}
-          onDone={() => {
-            onToggle()
-            onChanged()
-          }}
-        />
-      )}
-
       {viewing !== null && (
         <PhotoViewer
           intakeId={row.id}
@@ -366,6 +362,14 @@ function IntakeCard({
  * real question occasionally — just not the one a CSR working a queue is asking. They are asking
  * which of these has been sitting longest, and a clock time makes them do the subtraction.
  */
+/**
+ * The company to show: the CSR's correction, else what OCR read, else what the reporter said.
+ * `null` when none of them has anything — callers print nothing rather than "null".
+ */
+function companyOf(row: IntakeSummary): string | null {
+  return row.edited_company || row.ocr_company || row.reported_company || null
+}
+
 function ageOf(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (minutes < 1) return 'just now'
@@ -454,10 +458,10 @@ function Reads({
 }) {
   const [plate, setPlate] = useState(row.plate ?? '')
   const [mobiles, setMobiles] = useState((row.mobiles ?? []).join(', '))
-  const [company, setCompany] = useState(row.company ?? '')
+  const [company, setCompany] = useState(companyOf(row) ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
-  const [capacityId, setCapacityId] = useState<number | ''>(row.capacity_id ?? '')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
+  const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -505,7 +509,7 @@ function Reads({
         // 0, not null: null means "not in this request" and would leave the old value. A CSR
         // clearing the dropdown means they no longer know, and that has to be sayable.
         body_type_id: bodyTypeId === '' ? 0 : bodyTypeId,
-        capacity_id: capacityId === '' ? 0 : capacityId,
+        capacity,
         places,
       })
       onSaved()
@@ -559,13 +563,17 @@ function Reads({
       </label>
       <label>
         <span className="read-label">Capacity</span>
-        <select
-          value={capacityId}
-          onChange={(e) => setCapacityId(e.target.value === '' ? '' : Number(e.target.value))}
-        >
+        {/*
+          A pick list, not a constraint. `capacity` is free text — an imported truck may carry
+          "16.5 MT", which is not on this list — so an off-list value is offered back, not dropped.
+        */}
+        <select value={capacity} onChange={(e) => setCapacity(e.target.value)}>
           <option value="">Not known yet</option>
+          {capacity && !capacities.some((c) => c.label === capacity) && (
+            <option value={capacity}>{capacity} (as recorded)</option>
+          )}
           {capacities.map((c) => (
-            <option key={c.id} value={c.id}>
+            <option key={c.id} value={c.label}>
               {c.label}
             </option>
           ))}
@@ -601,25 +609,16 @@ function Reads({
  * genuinely ambiguous out of context — a bare number could be capacity or a phone, a place could
  * be an address — keep a marker.
  */
-function Facts({
-  row,
-  bodyTypes,
-  capacities,
-}: {
-  row: IntakeSummary
-  bodyTypes: BodyType[]
-  capacities: Capacity[]
-}) {
+function Facts({ row, bodyTypes }: { row: IntakeSummary; bodyTypes: BodyType[] }) {
   const mobiles = row.mobiles ?? []
-  const bodyType = bodyTypes.find((b) => b.id === row.body_type_id)?.name
-  const capacityLabel = capacities.find((c) => c.id === row.capacity_id)?.label
+  const bodyType = bodyTypes.find((b) => b.id === row.edited_body_type_id)?.name
   const places = row.edited_places ?? []
 
   const facts = [
-    row.company,
+    companyOf(row),
     row.driver_name,
     bodyType,
-    capacityLabel,
+    row.edited_capacity,
     places.length > 0 ? `${places.length} location${places.length === 1 ? '' : 's'}` : null,
   ].filter(Boolean) as string[]
 
@@ -977,7 +976,7 @@ function CompleteForm({
   // this form — it silently offered the machine's answer back to the person who had just
   // rejected it.
   const [reg, setReg] = useState(row.plate ?? '')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
   // The numbers on the truck, best-read first. The first is offered as the driver's and the
   // second as the company's, which is the usual arrangement on a truck's side — but that is a
@@ -990,7 +989,7 @@ function CompleteForm({
   const [companyName, setCompanyName] = useState(row.company ?? '')
   const [axles, setAxles] = useState('2')
   const [wheels, setWheels] = useState('6')
-  const [capacity, setCapacity] = useState(capacities.find((c) => c.id === row.capacity_id)?.label ?? '')
+  const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
   const [lengthFt, setLengthFt] = useState('')
   const [places, setPlaces] = useState<Place[]>([])
   const [error, setError] = useState<ApiError | null>(null)

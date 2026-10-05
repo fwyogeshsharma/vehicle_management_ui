@@ -310,9 +310,8 @@ export interface IntakeSummary {
   edited_company: string | null
   /** No OCR or reported counterpart — a name is not painted on a truck. */
   edited_driver_name: string | null
-  body_type_id: number | null
-  /** An id into the capacity list (`geo.capacities`), not the label. */
-  capacity_id: number | null
+  edited_body_type_id: number | null
+  edited_capacity: string | null
   /** Where the driver says it runs. Notes — the real locations are written at completion. */
   edited_places: Place[] | null
   edited_by: string | null

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchAll, ApiError } from '../api/client'
-import { companies, geo, users, vehicles } from '../api/resources'
+import { companies, geo, intake, users, vehicles } from '../api/resources'
 import type { BodyType, Capacity, City, Place, VehicleSummary } from '../api/types'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
 import { Pager, SortHeader } from '../components/Pager'
@@ -13,11 +13,25 @@ import { useAsync, useDebounced } from '../components/useAsync'
 /** Only keys the API whitelists: an unknown `sort` is a 422, not a silent fallback. */
 const SORTS = ['registration_number', 'capacity_tons', 'created_at', 'id']
 
+/** What the intake worklist hands over when a photo is ticked: the form opens already filled. */
+export interface RegisterPrefill {
+  intakeId: number
+  registration_number: string
+  body_type_id: number | null
+  capacity: string | null
+  driver_name: string
+  driver_mobile: string
+  company_name: string
+  places: Place[]
+}
+
 export function VehiclesPage() {
   const [params, setParams] = useSearchParams()
   const [term, setTerm] = useState(params.get('q') ?? '')
   const debounced = useDebounced(term)
-  const [adding, setAdding] = useState(false)
+  // Arriving from the intake worklist opens the register form straight away.
+  const prefill = (useLocation().state as { register?: RegisterPrefill } | null)?.register
+  const [adding, setAdding] = useState(prefill !== undefined)
 
   const page = Number(params.get('page') ?? 1)
   const pageSize = Number(params.get('page_size') ?? 25)
@@ -92,6 +106,7 @@ export function VehiclesPage() {
       {adding && (
         <NewVehicleForm
           bodyTypes={(bodyTypes.data ?? []).filter((b) => b.active)}
+          prefill={prefill}
           onClose={() => setAdding(false)}
           onCreated={() => {
             setAdding(false)
@@ -650,10 +665,12 @@ function Contact({ vehicle }: { vehicle: VehicleSummary }) {
  */
 function NewVehicleForm({
   bodyTypes,
+  prefill,
   onClose,
   onCreated,
 }: {
   bodyTypes: BodyType[]
+  prefill?: RegisterPrefill
   onClose: () => void
   onCreated: () => void
 }) {
@@ -662,17 +679,17 @@ function NewVehicleForm({
   const [error, setError] = useState<ApiError | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const [reg, setReg] = useState('')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>('')
+  const [reg, setReg] = useState(prefill?.registration_number ?? '')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(prefill?.body_type_id ?? '')
   const [axles, setAxles] = useState('2')
   const [wheels, setWheels] = useState('6')
-  const [capacity, setCapacity] = useState('')
+  const [capacity, setCapacity] = useState(prefill?.capacity ?? '')
   const [lengthFt, setLengthFt] = useState('')
 
   // intake mode
-  const [driverName, setDriverName] = useState('')
-  const [driverMobile, setDriverMobile] = useState('')
-  const [companyName, setCompanyName] = useState('')
+  const [driverName, setDriverName] = useState(prefill?.driver_name ?? '')
+  const [driverMobile, setDriverMobile] = useState(prefill?.driver_mobile ?? '')
+  const [companyName, setCompanyName] = useState(prefill?.company_name ?? '')
 
   // existing-records mode
   const [ownerKind, setOwnerKind] = useState<'company' | 'user'>('company')
@@ -680,7 +697,7 @@ function NewVehicleForm({
   const [ownerUserId, setOwnerUserId] = useState<number | ''>('')
   const [ownerAlsoDrives, setOwnerAlsoDrives] = useState(true)
 
-  const [places, setPlaces] = useState<Place[]>([])
+  const [places, setPlaces] = useState<Place[]>(prefill?.places ?? [])
 
   // Complete lists, not the first page of them: an owner missing from the picker cannot be
   // chosen, and the form gives no hint that they were left out.
@@ -714,6 +731,22 @@ function NewVehicleForm({
     setBusy(true)
     setError(null)
     try {
+      // From a photo, completing goes through the intake so the row leaves the worklist; the
+      // server creates the vehicle by the same path as the manual form.
+      if (prefill && mode === 'intake') {
+        const done = await intake.complete(prefill.intakeId, {
+          registration_number: reg,
+          body_type_id: Number(bodyTypeId),
+          driver_name: driverName,
+          driver_mobile: driverMobile,
+          company_name: companyName.trim() || null,
+          places,
+          ...dimensions,
+        })
+        onCreated()
+        navigate(done.vehicle_id ? `/vehicles/${done.vehicle_id}` : '/intake')
+        return
+      }
       const created =
         mode === 'intake'
           ? await vehicles.intake({
