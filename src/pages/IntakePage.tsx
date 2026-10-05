@@ -50,6 +50,7 @@ export function IntakePage() {
   const counts = useAsync(() => intake.counts(), [])
   const list = useAsync(() => intake.list(tab, page), [tab, page])
   const bodyTypes = useAsync(() => geo.bodyTypes(false), [])
+  const capacities = useAsync(() => geo.capacities(false), [])
 
   function go(next: Record<string, string | null>) {
     const merged = new URLSearchParams(params)
@@ -132,6 +133,7 @@ export function IntakePage() {
           key={row.id}
           row={row}
           bodyTypes={bodyTypes.data ?? []}
+          capacities={capacities.data ?? []}
           onChanged={reloadAll}
         />
       ))}
@@ -156,13 +158,16 @@ export function IntakePage() {
 function IntakeCard({
   row,
   bodyTypes,
+  capacities,
   onChanged,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
+  capacities: Capacity[]
   onChanged: () => void
 }) {
   const navigate = useNavigate()
+  const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [viewing, setViewing] = useState<number | null>(null)
@@ -250,25 +255,9 @@ function IntakeCard({
           {row.review_status === 'PENDING' &&
             (row.processing_status === 'DONE' || row.processing_status === 'FAILED') && (
               <ConfirmAction
-                title="Complete — register the vehicle"
-                onClick={() =>
-                  navigate('/vehicles', {
-                    state: {
-                      register: {
-                        intakeId: row.id,
-                        registration_number: row.plate ?? '',
-                        body_type_id: row.edited_body_type_id,
-                        capacity: row.edited_capacity,
-                        driver_name: row.driver_name ?? '',
-                        driver_mobile: (row.mobiles ?? [])[0] ?? '',
-                        driver_alt_mobile: (row.mobiles ?? [])[1] ?? '',
-                        company_mobile: (row.mobiles ?? [])[2] ?? '',
-                        company_name: companyOf(row) ?? '',
-                        places: row.edited_places ?? [],
-                      },
-                    },
-                  })
-                }
+                title={editing ? 'Close the form' : 'Review and register the vehicle'}
+                active={editing}
+                onClick={() => setEditing((e) => !e)}
                 disabled={busy}
               />
             )}
@@ -311,6 +300,20 @@ function IntakeCard({
         </div>
       )}
       {error && <Notice kind="error">{error.message}</Notice>}
+
+      {editing && (
+        <Reads
+          row={row}
+          bodyTypes={bodyTypes}
+          capacities={capacities}
+          onSaved={() => {
+            setEditing(false)
+            onChanged()
+          }}
+          onCreated={(vehicleId) => navigate(`/vehicles/${vehicleId}`)}
+          onCancel={() => setEditing(false)}
+        />
+      )}
 
       {viewing !== null && (
         <PhotoViewer
@@ -425,12 +428,14 @@ function Reads({
   bodyTypes,
   capacities,
   onSaved,
+  onCreated,
   onCancel,
 }: {
   row: IntakeSummary
   bodyTypes: BodyType[]
   capacities: Capacity[]
   onSaved: () => void
+  onCreated: (vehicleId: number) => void
   onCancel: () => void
 }) {
   const [plate, setPlate] = useState(row.plate ?? '')
@@ -440,6 +445,10 @@ function Reads({
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
   const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
+  // Only used when the vehicle is created; a correction to the photo has nowhere to keep them.
+  const [axles, setAxles] = useState('2')
+  const [wheels, setWheels] = useState('6')
+  const [lengthFt, setLengthFt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -497,6 +506,37 @@ function Reads({
     }
   }
 
+  // Save writes the correction to the photo's row; this one turns the row into a vehicle.
+  // The numbers are assigned by position — driver's, driver's other, company's — the same order
+  // OCR reads them off the truck.
+  async function createVehicle() {
+    setBusy(true)
+    setError(null)
+    try {
+      const [driverMobile, driverAltMobile, companyMobile] = typedMobiles
+      const done = await intake.complete(row.id, {
+        registration_number: plate,
+        body_type_id: Number(bodyTypeId),
+        driver_name: driverName,
+        driver_mobile: driverMobile ?? '',
+        driver_alt_mobile: driverAltMobile ?? null,
+        company_name: company.trim() || null,
+        company_mobile: companyMobile ?? null,
+        no_of_axles: axles === '' ? null : Number(axles),
+        no_of_wheels: wheels === '' ? null : Number(wheels),
+        capacity: capacity || null,
+        length_ft: lengthFt === '' ? null : lengthFt,
+        places,
+      })
+      if (done.vehicle_id) onCreated(done.vehicle_id)
+      else onSaved()
+    } catch (e) {
+      setError(e instanceof ApiError ? e : new ApiError(0, String(e)))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="intake-reads-editing">
       <FormError error={error} />
@@ -505,7 +545,9 @@ function Reads({
         <input value={plate} onChange={(e) => setPlate(e.target.value)} autoFocus />
       </label>
       <label className="wide">
-        <span className="read-label">Mobiles</span>
+        <span className="read-label">
+          Mobiles — driver&rsquo;s, driver&rsquo;s other, company&rsquo;s
+        </span>
         <input
           value={mobiles}
           onChange={(e) => setMobiles(e.target.value)}
@@ -556,6 +598,29 @@ function Reads({
           ))}
         </select>
       </label>
+      <label>
+        <span className="read-label">Axles</span>
+        <input type="number" min={1} value={axles} onChange={(e) => setAxles(e.target.value)} />
+      </label>
+      <label>
+        <span className="read-label">Wheels</span>
+        <input
+          type="number"
+          min={2}
+          step={2}
+          value={wheels}
+          onChange={(e) => setWheels(e.target.value)}
+        />
+      </label>
+      <label>
+        <span className="read-label">Length (ft)</span>
+        <input
+          type="number"
+          step="0.5"
+          value={lengthFt}
+          onChange={(e) => setLengthFt(e.target.value)}
+        />
+      </label>
       <label className="wide">
         <span className="read-label">Runs in</span>
         <PlacesPicker value={places} onChange={setPlaces} />
@@ -564,6 +629,9 @@ function Reads({
       <div className="read-actions">
         <button type="button" className="primary" disabled={busy} onClick={save}>
           Save
+        </button>
+        <button type="button" disabled={busy} onClick={createVehicle}>
+          Create vehicle
         </button>
         <button type="button" className="link" disabled={busy} onClick={onCancel}>
           Cancel
@@ -869,271 +937,5 @@ function PhotoViewer({
       </div>
     </div>,
     document.body,
-  )
-}
-
-/**
- * Every number read off the truck, and where to put each one.
- *
- * <p>OCR can say what the digits are; it cannot say <em>whose</em> number they are. A truck's
- * side commonly carries three — the owner's, the driver's, the transport office's — painted in a
- * row with nothing to distinguish them. Guessing would silently file the office number as the
- * driver's, and a telecaller would ring the wrong person for weeks.
- *
- * <p>So the digits are offered and the CSR, who is on the call, says which is which. A number
- * already sitting in one of the three fields is shown as placed rather than offered again.
- */
-function NumbersFromThePhoto({
-  numbers,
-  assigned,
-  onAssign,
-}: {
-  numbers: string[]
-  assigned: string[]
-  onAssign: {
-    driver: (v: string) => void
-    alt: (v: string) => void
-    company: (v: string) => void
-  }
-}) {
-  const placed = new Set(assigned.map((a) => a.trim()).filter(Boolean))
-
-  return (
-    <div className="ocr-numbers">
-      <span className="muted small">
-        OCR read {numbers.length === 1 ? 'this number' : `these ${numbers.length} numbers`} off
-        the photo. It cannot tell whose is whose — put each where it belongs:
-      </span>
-      <ul>
-        {numbers.map((n) => (
-          <li key={n}>
-            <code>{n}</code>
-            {placed.has(n) ? (
-              <span className="muted small">placed</span>
-            ) : (
-              <>
-                <button type="button" className="link" onClick={() => onAssign.driver(n)}>
-                  driver
-                </button>
-                <button type="button" className="link" onClick={() => onAssign.alt(n)}>
-                  driver&rsquo;s other
-                </button>
-                <button type="button" className="link" onClick={() => onAssign.company(n)}>
-                  company
-                </button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-/**
- * The completion form: the intake form, prefilled from the photo.
- *
- * <p>Every OCR value is editable and nothing is submitted automatically. The machine suggests;
- * the CSR — who is on the phone to the driver — decides.
- */
-function CompleteForm({
-  row,
-  bodyTypes,
-  capacities,
-  onDone,
-}: {
-  row: IntakeSummary
-  bodyTypes: BodyType[]
-  capacities: Capacity[]
-  onDone: () => void
-}) {
-  // `row.plate` / `row.mobiles` / `row.company`, NOT the ocr_* columns. The server has already
-  // resolved correction-then-read-then-typed into these, and reaching past them to ocr_* is
-  // exactly the bug that made a correction saved in the list vanish the moment someone opened
-  // this form — it silently offered the machine's answer back to the person who had just
-  // rejected it.
-  const [reg, setReg] = useState(row.plate ?? '')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
-  const [driverName, setDriverName] = useState(row.driver_name ?? '')
-  // The numbers on the truck, best-read first. The first is offered as the driver's and the
-  // second as the company's, which is the usual arrangement on a truck's side — but that is a
-  // guess about WHOSE number each one is, not about the digits, so both are editable and the CSR
-  // reassigns them on the call.
-  const ocrNumbers = row.mobiles ?? []
-  const [driverMobile, setDriverMobile] = useState(ocrNumbers[0] ?? '')
-  const [driverAltMobile, setDriverAltMobile] = useState('')
-  const [companyMobile, setCompanyMobile] = useState(ocrNumbers[1] ?? '')
-  const [companyName, setCompanyName] = useState(row.company ?? '')
-  const [axles, setAxles] = useState('2')
-  const [wheels, setWheels] = useState('6')
-  const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
-  const [lengthFt, setLengthFt] = useState('')
-  const [places, setPlaces] = useState<Place[]>([])
-  const [error, setError] = useState<ApiError | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      await intake.complete(row.id, {
-        registration_number: reg,
-        body_type_id: Number(bodyTypeId),
-        driver_name: driverName,
-        driver_mobile: driverMobile,
-        driver_alt_mobile: driverAltMobile.trim() || null,
-        company_name: companyName.trim() || null,
-        company_mobile: companyMobile.trim() || null,
-        no_of_axles: axles === '' ? null : Number(axles),
-        no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity: capacity || null,
-        length_ft: lengthFt === '' ? null : lengthFt,
-        places,
-      })
-      onDone()
-    } catch (e) {
-      setError(e instanceof ApiError ? e : new ApiError(0, String(e)))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <form className="inset" onSubmit={submit}>
-      <FormError error={error} />
-      <p className="muted small">
-        Prefilled from the photo where OCR managed a read. Check every box against the picture —
-        a wrong plate here becomes a wrong vehicle.
-      </p>
-
-      <div className="grid-2">
-        <Field label="Registration number" name="registration_number" error={error}>
-          <input value={reg} onChange={(e) => setReg(e.target.value)} required />
-        </Field>
-        <Field label="Body type" name="body_type_id" error={error}>
-          <select
-            value={bodyTypeId}
-            onChange={(e) => setBodyTypeId(e.target.value === '' ? '' : Number(e.target.value))}
-            required
-          >
-            <option value="">Choose…</option>
-            {bodyTypes.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-
-      <div className="grid-2">
-        <Field
-          label="Driver's name"
-          name="driver_name"
-          error={error}
-          hint="OCR cannot read this off a truck — ask on the call."
-        >
-          <input value={driverName} onChange={(e) => setDriverName(e.target.value)} required />
-        </Field>
-        <Field
-          label="Driver's mobile"
-          name="driver_mobile"
-          error={error}
-          hint="The number this driver is found by. Changing it records a different person."
-        >
-          <input value={driverMobile} onChange={(e) => setDriverMobile(e.target.value)} required />
-        </Field>
-      </div>
-
-      <div className="grid-2">
-        <Field
-          label="Driver's other number"
-          name="driver_alt_mobile"
-          error={error}
-          hint="Optional. Another way to reach the same driver."
-        >
-          <input
-            value={driverAltMobile}
-            onChange={(e) => setDriverAltMobile(e.target.value)}
-          />
-        </Field>
-        <Field
-          label="Company's number"
-          name="company_mobile"
-          error={error}
-          hint="Optional. The transport office, not the driver."
-        >
-          <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
-        </Field>
-      </div>
-
-      {ocrNumbers.length > 0 && (
-        <NumbersFromThePhoto
-          numbers={ocrNumbers}
-          assigned={[driverMobile, driverAltMobile, companyMobile]}
-          onAssign={{
-            driver: setDriverMobile,
-            alt: setDriverAltMobile,
-            company: setCompanyMobile,
-          }}
-        />
-      )}
-
-      <Field
-        label="Company"
-        name="company_name"
-        error={error}
-        hint="Leave blank if the driver owns the truck."
-      >
-        <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
-      </Field>
-
-      <div className="grid-4">
-        <Field label="Axles" name="no_of_axles" error={error}>
-          <input type="number" value={axles} onChange={(e) => setAxles(e.target.value)} />
-        </Field>
-        <Field label="Wheels" name="no_of_wheels" error={error}>
-          <input type="number" step={2} value={wheels} onChange={(e) => setWheels(e.target.value)} />
-        </Field>
-        <Field label="Capacity" name="capacity" error={error}>
-          <select value={capacity} onChange={(e) => setCapacity(e.target.value)} required>
-            <option value="">Choose…</option>
-            {capacity && !capacities.some((c) => c.label === capacity) && (
-              <option value={capacity}>{capacity} (as recorded)</option>
-            )}
-            {capacities.map((c) => (
-              <option key={c.id} value={c.label}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Length (ft)" name="length_ft" error={error}>
-          <input
-            type="number"
-            step="0.5"
-            value={lengthFt}
-            onChange={(e) => setLengthFt(e.target.value)}
-            required
-          />
-        </Field>
-      </div>
-
-      <fieldset>
-        <legend>Where it runs</legend>
-        <p className="muted small">
-          Optional. With a company these become the company's locations, shared by every truck it
-          owns; without one they are this vehicle's own.
-        </p>
-        <PlacesEditor value={places} onChange={setPlaces} disabled={busy} />
-      </fieldset>
-
-      <div className="actions">
-        <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Creating…' : 'Create vehicle'}
-        </button>
-      </div>
-    </form>
   )
 }
