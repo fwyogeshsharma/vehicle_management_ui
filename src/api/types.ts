@@ -312,6 +312,10 @@ export interface IntakeSummary {
   edited_driver_name: string | null
   edited_body_type_id: number | null
   edited_capacity: string | null
+  /** Vehicle details the CSR has noted for registration. Optional until the API returns them. */
+  edited_no_of_axles?: number | null
+  edited_no_of_wheels?: number | null
+  edited_length_ft?: string | null
   /** Where the driver says it runs. Notes — the real locations are written at completion. */
   edited_places: Place[] | null
   edited_by: string | null

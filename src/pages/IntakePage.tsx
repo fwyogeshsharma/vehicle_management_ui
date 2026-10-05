@@ -439,6 +439,9 @@ function Reads({
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
   const [capacity, setCapacity] = useState(row.edited_capacity ?? '')
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
+  const [axles, setAxles] = useState(String(row.edited_no_of_axles ?? 2))
+  const [wheels, setWheels] = useState(String(row.edited_no_of_wheels ?? 6))
+  const [lengthFt, setLengthFt] = useState(row.edited_length_ft ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -486,6 +489,9 @@ function Reads({
         // clearing the dropdown means they no longer know, and that has to be sayable.
         body_type_id: bodyTypeId === '' ? 0 : bodyTypeId,
         capacity,
+        no_of_axles: axles === '' ? null : Number(axles),
+        no_of_wheels: wheels === '' ? null : Number(wheels),
+        length_ft: lengthFt === '' ? null : lengthFt,
         places,
       })
       onSaved()
@@ -554,6 +560,29 @@ function Reads({
             </option>
           ))}
         </select>
+      </label>
+      <label>
+        <span className="read-label">Axles</span>
+        <input type="number" min={1} value={axles} onChange={(e) => setAxles(e.target.value)} />
+      </label>
+      <label>
+        <span className="read-label">Wheels</span>
+        <input
+          type="number"
+          min={2}
+          step={2}
+          value={wheels}
+          onChange={(e) => setWheels(e.target.value)}
+        />
+      </label>
+      <label>
+        <span className="read-label">Length (ft)</span>
+        <input
+          type="number"
+          step="0.5"
+          value={lengthFt}
+          onChange={(e) => setLengthFt(e.target.value)}
+        />
       </label>
       <label className="wide">
         <span className="read-label">Runs in</span>

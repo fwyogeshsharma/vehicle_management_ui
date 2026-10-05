@@ -410,6 +410,9 @@ export const intake = {
       driver_name?: string
       body_type_id?: number | null
       capacity?: string
+      no_of_axles?: number | null
+      no_of_wheels?: number | null
+      length_ft?: string | number | null
       places?: Place[]
     },
   ) => api.patch<IntakeSummary>(`/api/intake/${id}`, body),
