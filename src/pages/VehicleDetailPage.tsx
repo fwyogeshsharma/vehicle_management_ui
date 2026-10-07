@@ -461,7 +461,6 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
   const capacityId: number | '' =
     capacityPick ??
-    vehicle.capacity_id ??
     masters.capacities.find((c) => c.label === vehicle.capacity)?.id ??
     ''
   const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))

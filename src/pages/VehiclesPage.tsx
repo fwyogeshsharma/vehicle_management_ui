@@ -424,10 +424,9 @@ function EditVehicleForm({
   const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
   const capacityId: number | '' =
     capacityPick ??
-    vehicle.capacity_id ??
     capacities.find((c) => c.label === vehicle.capacity)?.id ??
     ''
-  const [lengthFt, setLengthFt] = useState(vehicle.length_ft ?? '')
+  const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)

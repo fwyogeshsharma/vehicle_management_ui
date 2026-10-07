@@ -125,8 +125,6 @@ export interface VehicleSummary {
   registration_number: string
   body_type_id: number
   capacity: string | null
-  /** Id on the capacity list, when the API sends it. The label above is what is displayed. */
-  capacity_id?: number | null
   /** Derived by the database from `capacity`. Read-only; never send it. */
   capacity_tons: string | null
   owner_company_id: number | null
@@ -306,6 +304,7 @@ export interface IntakeSummary {
   reported_mobile: string | null
   reported_company: string | null
   reported_by: string | null
+  reported_driver_name: string | null
   location: string | null
   ocr_plate: string | null
   /**
@@ -326,14 +325,12 @@ export interface IntakeSummary {
   edited_company: string | null
   /** No OCR or reported counterpart — a name is not painted on a truck. */
   edited_driver_name: string | null
-  edited_body_type_id: number | null
-  edited_capacity: string | null
-  /** Id on the capacity list, when the API sends it; `edited_capacity` is its label. */
-  edited_capacity_id?: number | null
-  /** Vehicle details the CSR has noted for registration. Optional until the API returns them. */
-  edited_no_of_axles?: number | null
-  edited_no_of_wheels?: number | null
-  edited_length_ft?: string | null
+  /**
+   * Plain columns, not `edited_*`: the body type and capacity the CSR has picked. The summary
+   * carries no axles, wheels or length — those travel only in the PATCH/complete bodies.
+   */
+  body_type_id: number | null
+  capacity_id: number | null
   /** Where the driver says it runs. Notes — the real locations are written at completion. */
   edited_places: Place[] | null
   edited_by: string | null

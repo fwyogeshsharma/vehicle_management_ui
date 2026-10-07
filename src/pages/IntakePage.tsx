@@ -228,7 +228,7 @@ function IntakeCard({
           screen. Absent facts are simply not shown.
         */}
         <div className="intake-details">
-          <Facts row={row} bodyTypes={bodyTypes} />
+          <Facts row={row} bodyTypes={bodyTypes} capacities={capacities} />
         </div>
 
         <div className="intake-actions">
@@ -445,20 +445,20 @@ function Reads({
   const [driverAltMobile, setDriverAltMobile] = useState((row.mobiles ?? [])[2] ?? '')
   const [company, setCompany] = useState(companyOf(row) ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
-  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.edited_body_type_id ?? '')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
   // The id is what is sent. `null` means untouched, so the saved value (its id, or the id of the
   // list entry carrying the saved label) shows until the CSR picks something — the list may
   // not have arrived yet when the form opens.
   const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
   const capacityId: number | '' =
     capacityPick ??
-    row.edited_capacity_id ??
-    capacities.find((c) => c.label === row.edited_capacity)?.id ??
+    row.capacity_id ??
     ''
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
-  const [axles, setAxles] = useState(String(row.edited_no_of_axles ?? 2))
-  const [wheels, setWheels] = useState(String(row.edited_no_of_wheels ?? 6))
-  const [lengthFt, setLengthFt] = useState(row.edited_length_ft ?? '')
+  // Not on the summary: the API only takes these, it does not echo them back.
+  const [axles, setAxles] = useState('2')
+  const [wheels, setWheels] = useState('6')
+  const [lengthFt, setLengthFt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -666,16 +666,24 @@ function Reads({
  * genuinely ambiguous out of context — a bare number could be capacity or a phone, a place could
  * be an address — keep a marker.
  */
-function Facts({ row, bodyTypes }: { row: IntakeSummary; bodyTypes: BodyType[] }) {
+function Facts({
+  row,
+  bodyTypes,
+  capacities,
+}: {
+  row: IntakeSummary
+  bodyTypes: BodyType[]
+  capacities: Capacity[]
+}) {
   const mobiles = row.mobiles ?? []
-  const bodyType = bodyTypes.find((b) => b.id === row.edited_body_type_id)?.name
+  const bodyType = bodyTypes.find((b) => b.id === row.body_type_id)?.name
   const places = row.edited_places ?? []
 
   const facts = [
     companyOf(row),
     row.driver_name,
     bodyType,
-    row.edited_capacity,
+    capacities.find((c) => c.id === row.capacity_id)?.label,
     places.length > 0 ? `${places.length} location${places.length === 1 ? '' : 's'}` : null,
   ].filter(Boolean) as string[]
 
