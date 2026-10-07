@@ -325,6 +325,8 @@ export const vehicles = {
       no_of_axles?: number | null
       no_of_wheels?: number | null
       capacity_id?: number | null
+      /** Free text, for a saved label not on the pick list. Ignored when `capacity_id` is set. */
+      capacity?: string | null
       length_ft?: string | number | null
       notes?: string | null
     },

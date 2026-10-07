@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ApiError } from '../api/client'
 
 /**
@@ -37,17 +37,31 @@ export function Field({
 }
 
 /**
- * The part of an error that does not belong to any one input.
+ * The part of an error that does not belong to any one input on screen.
  *
- * Suppresses itself when every message has already been shown beside a field, so a duplicate
- * mobile number is not reported twice on the same screen.
+ * A message already shown beside its {@link Field} is not repeated, so a duplicate mobile number
+ * is not reported twice. One with no matching Field is shown here instead of being dropped.
+ * The check runs after the form has rendered, because FormError sits above the Fields it defers
+ * to and they have not looked their messages up yet when it renders.
  */
 export function FormError({ error }: { error: ApiError | null }) {
+  const [leftover, setLeftover] = useState<string[]>([])
+  useEffect(() => {
+    setLeftover(error ? error.unclaimedFields().map((f) => f.message) : [])
+  }, [error])
+
   if (!error) return null
-  if (error.fields.length > 0) return null
+  if (error.fields.length === 0) {
+    return (
+      <div className="notice notice-error" role="alert">
+        {error.message}
+      </div>
+    )
+  }
+  if (leftover.length === 0) return null
   return (
     <div className="notice notice-error" role="alert">
-      {error.message}
+      {leftover.join(' ')}
     </div>
   )
 }

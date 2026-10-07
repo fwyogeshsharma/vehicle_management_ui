@@ -7,6 +7,7 @@ import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
 import { plateOf } from '../components/plate'
 import { PlacesEditor, placeLabel } from '../components/PlacesEditor'
 import { useAsync } from '../components/useAsync'
+import { SAVED_CAPACITY, useCapacityPick } from '../components/useCapacityPick'
 import { useMasters } from '../components/useMasters'
 
 export function VehicleDetailPage() {
@@ -238,7 +239,9 @@ function OwnerCard({ vehicle, onChanged }: { vehicle: VehicleDetail; onChanged: 
  * hits it. Better to show the short list and say why it is short.
  */
 function DriversCard({ vehicle }: { vehicle: VehicleDetail }) {
-  const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id])
+  // Re-read when the vehicle changes, not only when the page opens: a sale clears every driver
+  // assignment server-side, and without updated_at here the card kept showing the old driver.
+  const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id, vehicle.updated_at])
   const [error, setError] = useState<ApiError | null>(null)
   const [busy, setBusy] = useState(false)
   const [pick, setPick] = useState<number | ''>('')
@@ -458,13 +461,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(vehicle.body_type_id ?? '')
   const [axles, setAxles] = useState(String(vehicle.no_of_axles ?? ''))
   const [wheels, setWheels] = useState(String(vehicle.no_of_wheels ?? ''))
-  // null = untouched: the saved capacity shows (by id, or by the id of the list entry with the
-  // saved label) until a pick is made; the list may not have arrived when the form opens.
-  const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
-  const capacityId: number | '' =
-    capacityPick ??
-    masters.capacities.find((c) => c.label === vehicle.capacity)?.id ??
-    ''
+  const capacity = useCapacityPick(vehicle.capacity, masters.capacities)
   const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))
   const [notes, setNotes] = useState(vehicle.notes ?? '')
 
@@ -472,7 +469,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   // user and the company is a company, each with its own record, so editing them here writes to
   // those records. The primary driver stands in for "the driver" — the same one the contact line
   // on the vehicle list rings.
-  const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id])
+  const drivers = useAsync(() => vehicles.drivers(vehicle.id), [vehicle.id, vehicle.updated_at])
   const primary = (drivers.data ?? []).find((d) => d.primary) ?? (drivers.data ?? [])[0]
   const driver = useAsync(
     () => (primary ? users.get(primary.user_id) : Promise.resolve(null)),
@@ -508,7 +505,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         body_type_id: bodyTypeId === '' ? null : bodyTypeId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity_id: capacityId === '' ? null : capacityId,
+        ...capacity.body,
         length_ft: lengthFt === '' ? null : lengthFt,
         notes: notes || null,
       })
@@ -624,11 +621,11 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           error={error}
           hint="The tonnage used for sorting is derived from it by the server."
         >
-          <select
-            value={capacityId}
-            onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
-          >
+          <select value={capacity.value} onChange={(e) => capacity.onChange(e.target.value)}>
             <option value="">Not known</option>
+            {capacity.offList && (
+              <option value={SAVED_CAPACITY}>{capacity.offList} (not on the list)</option>
+            )}
             {masters.capacities.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}

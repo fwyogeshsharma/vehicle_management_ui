@@ -36,9 +36,27 @@ export class ApiError extends Error {
     this.fields = fields
   }
 
-  /** The message for one input, or undefined when this error is not about that input. */
+  /** Inputs on screen that have looked their message up; see {@link unclaimedFields}. */
+  private readonly claimed = new Set<string>()
+
+  /**
+   * The message for one input, or undefined when this error is not about that input.
+   *
+   * Asking marks the input as shown, so {@link unclaimedFields} can tell which messages have no
+   * box on screen to sit beside.
+   */
   fieldMessage(field: string): string | undefined {
+    this.claimed.add(field)
     return this.fields.find((f) => f.field === field)?.message
+  }
+
+  /**
+   * Field messages no input has claimed. A form whose box is named differently from the API's
+   * field (`capacity_id` beside an error about `capacity`), or one with no `Field` at all, would
+   * otherwise show nothing: the server says which box is wrong and the user sees no message.
+   */
+  unclaimedFields(): FieldMessage[] {
+    return this.fields.filter((f) => !this.claimed.has(f.field))
   }
 
   get isNotFound() {

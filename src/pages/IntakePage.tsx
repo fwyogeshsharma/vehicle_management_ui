@@ -459,10 +459,10 @@ function Reads({
     row.capacity_id ??
     ''
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
-  // Not on the summary: the API only takes these, it does not echo them back.
-  const [axles, setAxles] = useState('')
-  const [wheels, setWheels] = useState('')
-  const [lengthFt, setLengthFt] = useState('')
+  // Saved with the row since changeset 024, so a CSR's answers survive closing the form.
+  const [axles, setAxles] = useState(row.no_of_axles?.toString() ?? '')
+  const [wheels, setWheels] = useState(row.no_of_wheels?.toString() ?? '')
+  const [lengthFt, setLengthFt] = useState(row.length_ft?.toString() ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -513,9 +513,10 @@ function Reads({
         body_type_id: bodyTypeId === '' ? 0 : bodyTypeId,
         // 0 clears it, as with body_type_id.
         capacity_id: capacityId === '' ? 0 : capacityId,
-        no_of_axles: axles === '' ? null : Number(axles),
-        no_of_wheels: wheels === '' ? null : Number(wheels),
-        length_ft: lengthFt === '' ? null : lengthFt,
+        // 0 clears these too: an emptied box is an answer, not an omission.
+        no_of_axles: axles === '' ? 0 : Number(axles),
+        no_of_wheels: wheels === '' ? 0 : Number(wheels),
+        length_ft: lengthFt === '' ? 0 : lengthFt,
         places,
       })
       onSaved()

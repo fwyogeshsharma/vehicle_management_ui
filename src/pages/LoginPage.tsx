@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Field, FormError } from '../components/Form'
@@ -14,9 +14,6 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
 
   const from = (location.state as { from?: string } | null)?.from ?? '/'
-  if (user) {
-    navigate(from, { replace: true })
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -30,6 +27,11 @@ export function LoginPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  // A <Navigate> rather than navigate() during render, which React warns about on every sign-in.
+  if (user) {
+    return <Navigate to={from} replace />
   }
 
   return (

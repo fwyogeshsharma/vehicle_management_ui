@@ -263,10 +263,17 @@ function EditCompanyForm({
     setBusy(true)
     setError(null)
     try {
+      // The PUT replaces every field, and a list row carries only some of them. Read the rest
+      // fresh and send them back unchanged, or saving here blanks the email, address and head
+      // office set on the company's own page.
+      const full = await companies.get(company.id)
       await companies.update(company.id, {
         name,
         mobile: mobile.trim() || null,
         gstin: gstin.trim() || null,
+        email: full.email,
+        address: full.address,
+        head_office_city_id: full.head_office_city_id,
       })
       // Only when edited. Sending the fetched set back unchanged would still be a replace, and
       // a replace on a company is a change to every vehicle that inherits from it.

@@ -339,6 +339,10 @@ export interface IntakeSummary {
    */
   body_type_id: number | null
   capacity_id: number | null
+  /** The CSR's answers, saved with the row; wheels falls back to the field app's. */
+  no_of_axles: number | null
+  no_of_wheels: number | null
+  length_ft: string | null
   /** Where the driver says it runs. Notes — the real locations are written at completion. */
   edited_places: Place[] | null
   edited_by: string | null

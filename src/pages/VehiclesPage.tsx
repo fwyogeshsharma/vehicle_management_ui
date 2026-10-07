@@ -10,6 +10,7 @@ import { PlacesEditor } from '../components/PlacesEditor'
 import { PlacesPicker } from '../components/PlacesPicker'
 import { DeleteAction, EditAction, RestoreAction } from '../components/RowActions'
 import { useAsync, useDebounced } from '../components/useAsync'
+import { SAVED_CAPACITY, useCapacityPick } from '../components/useCapacityPick'
 import { useMasters } from '../components/useMasters'
 
 /** Only keys the API whitelists: an unknown `sort` is a 422, not a silent fallback. */
@@ -420,13 +421,7 @@ function EditVehicleForm({
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(vehicle.body_type_id ?? '')
   const [axles, setAxles] = useState(vehicle.no_of_axles?.toString() ?? '')
   const [wheels, setWheels] = useState(vehicle.no_of_wheels?.toString() ?? '')
-  // null = untouched: the saved capacity shows (by id, or by the id of the list entry with the
-  // saved label) until a pick is made; the list may not have arrived when the form opens.
-  const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
-  const capacityId: number | '' =
-    capacityPick ??
-    capacities.find((c) => c.label === vehicle.capacity)?.id ??
-    ''
+  const capacity = useCapacityPick(vehicle.capacity, capacities)
   const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -477,12 +472,16 @@ function EditVehicleForm({
     setBusy(true)
     setError(null)
     try {
+      // The PUT replaces every attribute, and a list row does not carry the notes. Read them
+      // fresh so saving from here does not blank what was written on the vehicle's own page.
+      const { notes } = await vehicles.get(vehicle.id)
       await vehicles.update(vehicle.id, {
         body_type_id: bodyTypeId === '' ? null : bodyTypeId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
-        capacity_id: capacityId === '' ? null : capacityId,
+        ...capacity.body,
         length_ft: lengthFt === '' ? null : lengthFt,
+        notes,
       })
       // Only when touched. Replaces this vehicle's OWN rows; the company's are untouched.
       if (places !== null) {
@@ -552,11 +551,11 @@ function EditVehicleForm({
           </select>
         </Field>
         <Field label="Capacity" name="capacity_id" error={error}>
-          <select
-            value={capacityId}
-            onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
-          >
+          <select value={capacity.value} onChange={(e) => capacity.onChange(e.target.value)}>
             <option value="">Not recorded</option>
+            {capacity.offList && (
+              <option value={SAVED_CAPACITY}>{capacity.offList} (not on the list)</option>
+            )}
             {capacities.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
@@ -876,6 +875,9 @@ function NewVehicleForm({
               owner_company_id: ownerKind === 'company' ? Number(companyId) : null,
               owner_user_id: ownerKind === 'user' ? Number(ownerUserId) : null,
               owner_also_drives: ownerKind === 'user' && ownerAlsoDrives,
+              // Only a person's truck holds its own places here; the API refuses them for a
+              // company's, which inherits the company's instead and gets no editor on this form.
+              places: ownerKind === 'user' ? places : undefined,
               ...dimensions,
             })
       onCreated()
