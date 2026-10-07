@@ -40,6 +40,10 @@ npm run typecheck      :: types only
 `vite.config.ts` and you must change `VM_CORS_ORIGINS` to match, or every request fails
 preflight and the browser reports a CORS error that looks like a bug in this code.
 
+**Production** is served at https://trucks.rollingradius.com. Netlify proxies `/api/*` to the API
+(see `netlify.toml`), so calls are same-origin; if the API is ever called directly instead, set
+`VM_CORS_ORIGINS=https://trucks.rollingradius.com` there.
+
 ---
 
 ## The screens
