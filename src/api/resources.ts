@@ -274,8 +274,8 @@ export const vehicles = {
 
   /** Exactly one of owner_company_id / owner_user_id. */
   create: (body: {
-    registration_number: string
-    body_type_id: number
+    registration_number?: string | null
+    body_type_id?: number | null
     owner_company_id?: number | null
     owner_user_id?: number | null
     owner_also_drives?: boolean
@@ -299,8 +299,8 @@ export const vehicles = {
    * only way a non-administrator creates a user record.
    */
   intake: (body: {
-    registration_number: string
-    body_type_id: number
+    registration_number?: string | null
+    body_type_id?: number | null
     driver_name: string
     driver_mobile: string
     company_name?: string | null
@@ -319,7 +319,9 @@ export const vehicles = {
   update: (
     id: number,
     body: {
-      body_type_id: number
+      /** Adds or corrects the plate. Blank or absent keeps the current one; it never clears. */
+      registration_number?: string | null
+      body_type_id?: number | null
       no_of_axles?: number | null
       no_of_wheels?: number | null
       capacity_id?: number | null
@@ -382,8 +384,8 @@ export const intake = {
   complete: (
     id: number,
     body: {
-      registration_number: string
-      body_type_id: number
+      registration_number?: string | null
+      body_type_id?: number | null
       driver_name: string
       driver_mobile: string
       /** Optional second number for the SAME driver. Never used to look anyone up. */

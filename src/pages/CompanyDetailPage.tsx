@@ -4,6 +4,7 @@ import { fetchAll, ApiError } from '../api/client'
 import { companies, geo, users } from '../api/resources'
 import type { CompanyDetail, Place, State } from '../api/types'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
+import { plateOf } from '../components/plate'
 import { PlacesEditor, placeLabel } from '../components/PlacesEditor'
 import { useAsync } from '../components/useAsync'
 
@@ -192,7 +193,7 @@ function FleetCard({ company }: { company: CompanyDetail }) {
             {fleet.data.map((v) => (
               <tr key={v.id} className={v.active ? '' : 'row-muted'}>
                 <td>
-                  <Link to={`/vehicles/${v.id}`}>{v.registration_number}</Link>
+                  <Link to={`/vehicles/${v.id}`}>{plateOf(v)}</Link>
                 </td>
                 <td>{v.capacity ?? '—'}</td>
                 <td>{!v.active && <span className="badge">Retired</span>}</td>

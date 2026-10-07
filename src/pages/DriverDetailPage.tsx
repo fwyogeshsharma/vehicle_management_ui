@@ -5,6 +5,7 @@ import { companies, users } from '../api/resources'
 import type { UserDetail } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
+import { plateOf } from '../components/plate'
 import { useAsync } from '../components/useAsync'
 
 export function DriverDetailPage() {
@@ -193,7 +194,7 @@ function TrucksDrivenCard({ user }: { user: UserDetail }) {
         <ul className="chips">
           {driven.data.map((v) => (
             <li key={v.id} className="chip">
-              <Link to={`/vehicles/${v.id}`}>{v.registration_number}</Link>
+              <Link to={`/vehicles/${v.id}`}>{plateOf(v)}</Link>
             </li>
           ))}
         </ul>

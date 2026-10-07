@@ -4,6 +4,7 @@ import { fetchAll, ApiError } from '../api/client'
 import { companies, geo, intake, users, vehicles } from '../api/resources'
 import type { BodyType, Capacity, City, Place, VehicleSummary } from '../api/types'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
+import { plateOf } from '../components/plate'
 import { Pager, SortHeader } from '../components/Pager'
 import { PlacesEditor } from '../components/PlacesEditor'
 import { PlacesPicker } from '../components/PlacesPicker'
@@ -250,7 +251,7 @@ export function VehiclesPage() {
                   <VehicleRow
                     key={v.id}
                     vehicle={v}
-                    bodyTypeName={byId.get(v.body_type_id)}
+                    bodyTypeName={v.body_type_id === null ? undefined : byId.get(v.body_type_id)}
                     bodyTypes={masters.bodyTypes}
                     capacities={masters.capacities}
                     onChanged={list.reload}
@@ -331,7 +332,7 @@ function VehicleRow({
     <>
       <tr className={vehicle.active ? '' : 'row-muted'}>
         <td>
-          <Link to={`/vehicles/${vehicle.id}`}>{vehicle.registration_number}</Link>
+          <Link to={`/vehicles/${vehicle.id}`}>{plateOf(vehicle)}</Link>
           {!vehicle.active && <span className="badge"> retired</span>}
         </td>
         <td>{bodyTypeName ?? '—'}</td>
@@ -363,7 +364,7 @@ function VehicleRow({
               onClick={() => {
                 if (
                   window.confirm(
-                    `Take ${vehicle.registration_number} off the road? It stays on file with its ` +
+                    `Take ${plateOf(vehicle)} off the road? It stays on file with its ` +
                       `drivers and history; it just cannot be dispatched.`,
                   )
                 ) {
@@ -477,7 +478,7 @@ function EditVehicleForm({
     setError(null)
     try {
       await vehicles.update(vehicle.id, {
-        body_type_id: Number(bodyTypeId),
+        body_type_id: bodyTypeId === '' ? null : bodyTypeId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
         capacity_id: capacityId === '' ? null : capacityId,
@@ -525,20 +526,20 @@ function EditVehicleForm({
     <form className="inset row-editor" onSubmit={save}>
       <FormError error={error} />
       <p className="muted small">
-        Editing <strong>{vehicle.registration_number}</strong>. The registration, the owner and
+        Editing <strong>{plateOf(vehicle)}</strong>. The registration, the owner and
         which drivers are assigned are changed from the vehicle&rsquo;s own page — each has
         consequences a list row cannot show.
       </p>
       <div className="row-editor-fields">
         <Field label="Registration" name="registration_number" error={error}>
-          <input value={vehicle.registration_number} disabled />
+          <input value={vehicle.registration_number ?? ''} placeholder="Not known yet" disabled />
         </Field>
         <Field label="Body type" name="body_type_id" error={error}>
           <select
             value={bodyTypeId}
             onChange={(e) => setBodyTypeId(e.target.value === '' ? '' : Number(e.target.value))}
-            required
           >
+            <option value="">Not known yet</option>
             {/* A body type retired since this truck was registered is kept selectable. */}
             {bodyTypeId !== '' && !bodyTypes.some((b) => b.id === bodyTypeId) && (
               <option value={bodyTypeId}>Current type (retired)</option>
@@ -788,8 +789,8 @@ function NewVehicleForm({
 
   const [reg, setReg] = useState(prefill?.registration_number ?? '')
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(prefill?.body_type_id ?? '')
-  const [axles, setAxles] = useState('2')
-  const [wheels, setWheels] = useState('6')
+  const [axles, setAxles] = useState('')
+  const [wheels, setWheels] = useState('')
   const [capacityPick, setCapacityPick] = useState<number | '' | null>(null)
   const capacityId: number | '' =
     capacityPick ?? capacities.find((c) => c.label === prefill?.capacity)?.id ?? ''
@@ -823,6 +824,9 @@ function NewVehicleForm({
   )
 
   const dimensions = {
+    // Both optional: blank and "Not known yet" are sent as null.
+    registration_number: reg.trim() || null,
+    body_type_id: bodyTypeId === '' ? null : bodyTypeId,
     no_of_axles: axles === '' ? null : Number(axles),
     no_of_wheels: wheels === '' ? null : Number(wheels),
     capacity_id: capacityId === '' ? null : capacityId,
@@ -847,8 +851,6 @@ function NewVehicleForm({
       // server creates the vehicle by the same path as the manual form.
       if (prefill && mode === 'intake') {
         const done = await intake.complete(prefill.intakeId, {
-          registration_number: reg,
-          body_type_id: Number(bodyTypeId),
           driver_name: driverName,
           driver_mobile: driverMobile,
           driver_alt_mobile: driverAltMobile.trim() || null,
@@ -864,8 +866,6 @@ function NewVehicleForm({
       const created =
         mode === 'intake'
           ? await vehicles.intake({
-              registration_number: reg,
-              body_type_id: Number(bodyTypeId),
               driver_name: driverName,
               driver_mobile: driverMobile,
               company_name: companyName.trim() || null,
@@ -873,8 +873,6 @@ function NewVehicleForm({
               ...dimensions,
             })
           : await vehicles.create({
-              registration_number: reg,
-              body_type_id: Number(bodyTypeId),
               owner_company_id: ownerKind === 'company' ? Number(companyId) : null,
               owner_user_id: ownerKind === 'user' ? Number(ownerUserId) : null,
               owner_also_drives: ownerKind === 'user' && ownerAlsoDrives,
@@ -896,21 +894,20 @@ function NewVehicleForm({
 
       <div className="grid-2">
         <Field
-          label="Registration number"
+          label="Registration number — optional"
           name="registration_number"
           error={error}
           hint="Stored canonically — MH12AB1234."
         >
-          <input value={reg} onChange={(e) => setReg(e.target.value)} required autoFocus />
+          <input value={reg} onChange={(e) => setReg(e.target.value)} autoFocus />
         </Field>
 
-        <Field label="Body type" name="body_type_id" error={error}>
+        <Field label="Body type — optional" name="body_type_id" error={error}>
           <select
             value={bodyTypeId}
             onChange={(e) => setBodyTypeId(e.target.value === '' ? '' : Number(e.target.value))}
-            required
           >
-            <option value="">Choose…</option>
+            <option value="">Not known yet</option>
             {bodyTypes.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -1091,10 +1088,10 @@ function NewVehicleForm({
       </fieldset>
 
       <div className="grid-4">
-        <Field label="Axles" name="no_of_axles" error={error}>
+        <Field label="Axles — optional" name="no_of_axles" error={error}>
           <input type="number" min={1} value={axles} onChange={(e) => setAxles(e.target.value)} />
         </Field>
-        <Field label="Wheels" name="no_of_wheels" error={error}>
+        <Field label="Wheels — optional" name="no_of_wheels" error={error}>
           <input
             type="number"
             min={2}

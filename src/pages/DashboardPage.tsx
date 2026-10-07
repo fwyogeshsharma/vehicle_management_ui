@@ -4,6 +4,7 @@ import { companies, geo, users, vehicles } from '../api/resources'
 import type { City } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { Empty, Notice, Spinner } from '../components/Form'
+import { plateOf } from '../components/plate'
 import { useAsync, useDebounced } from '../components/useAsync'
 
 /**
@@ -160,7 +161,7 @@ function WhoServesThisCity() {
                 {serving.data.items.map((v) => (
                   <tr key={v.id}>
                     <td>
-                      <Link to={`/vehicles/${v.id}`}>{v.registration_number}</Link>
+                      <Link to={`/vehicles/${v.id}`}>{plateOf(v)}</Link>
                     </td>
                     <td>{v.capacity ?? '—'}</td>
                     <td>{v.company_owned ? 'A company' : 'Owner-driver'}</td>

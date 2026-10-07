@@ -460,8 +460,8 @@ function Reads({
     ''
   const [places, setPlaces] = useState<Place[]>(row.edited_places ?? [])
   // Not on the summary: the API only takes these, it does not echo them back.
-  const [axles, setAxles] = useState('2')
-  const [wheels, setWheels] = useState('6')
+  const [axles, setAxles] = useState('')
+  const [wheels, setWheels] = useState('')
   const [lengthFt, setLengthFt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -532,8 +532,9 @@ function Reads({
     setError(null)
     try {
       const done = await intake.complete(row.id, {
-        registration_number: plate,
-        body_type_id: Number(bodyTypeId),
+        // Both optional: blank and "Not known yet" are sent as null.
+        registration_number: plate.trim() || null,
+        body_type_id: bodyTypeId === '' ? null : bodyTypeId,
         driver_name: driverName,
         driver_mobile: digits(driverMobile),
         driver_alt_mobile: digits(driverAltMobile) || null,
@@ -558,7 +559,7 @@ function Reads({
     <div className="intake-reads-editing">
       <FormError error={error} />
       <label>
-        <span className="read-label">Registration</span>
+        <span className="read-label">Registration — optional</span>
         <input value={plate} onChange={(e) => setPlate(e.target.value)} autoFocus />
       </label>
       <label>
@@ -586,7 +587,7 @@ function Reads({
         <input value={driverAltMobile} onChange={(e) => setDriverAltMobile(e.target.value)} />
       </label>
       <label>
-        <span className="read-label">Body type</span>
+        <span className="read-label">Body type — optional</span>
         <select
           value={bodyTypeId}
           onChange={(e) => setBodyTypeId(e.target.value === '' ? '' : Number(e.target.value))}
@@ -614,11 +615,11 @@ function Reads({
         </select>
       </label>
       <label>
-        <span className="read-label">Axles</span>
+        <span className="read-label">Axles — optional</span>
         <input type="number" min={1} value={axles} onChange={(e) => setAxles(e.target.value)} />
       </label>
       <label>
-        <span className="read-label">Wheels</span>
+        <span className="read-label">Wheels — optional</span>
         <input
           type="number"
           min={2}

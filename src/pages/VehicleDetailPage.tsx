@@ -4,6 +4,7 @@ import { fetchAll, ApiError } from '../api/client'
 import { companies, geo, users, vehicles } from '../api/resources'
 import type { Place, VehicleDetail } from '../api/types'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
+import { plateOf } from '../components/plate'
 import { PlacesEditor, placeLabel } from '../components/PlacesEditor'
 import { useAsync } from '../components/useAsync'
 import { useMasters } from '../components/useMasters'
@@ -24,7 +25,7 @@ export function VehicleDetailPage() {
     <div className="stack">
       <header className="page-header">
         <div>
-          <h1>{v.registration_number}</h1>
+          <h1>{plateOf(v)}</h1>
           <p className="muted">
             {bodyType?.name ?? '—'} · {v.capacity ?? 'capacity unknown'} ·{' '}
             {v.company_owned ? 'owned by a company' : 'owned by an individual'}
@@ -453,7 +454,8 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
   const [error, setError] = useState<ApiError | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const [bodyTypeId, setBodyTypeId] = useState(vehicle.body_type_id)
+  const [reg, setReg] = useState(vehicle.registration_number ?? '')
+  const [bodyTypeId, setBodyTypeId] = useState<number | ''>(vehicle.body_type_id ?? '')
   const [axles, setAxles] = useState(String(vehicle.no_of_axles ?? ''))
   const [wheels, setWheels] = useState(String(vehicle.no_of_wheels ?? ''))
   // null = untouched: the saved capacity shows (by id, or by the id of the list entry with the
@@ -501,7 +503,9 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
     setError(null)
     try {
       await vehicles.update(vehicle.id, {
-        body_type_id: bodyTypeId,
+        // Blank keeps the current plate; the API never clears one.
+        registration_number: reg.trim() || null,
+        body_type_id: bodyTypeId === '' ? null : bodyTypeId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
         capacity_id: capacityId === '' ? null : capacityId,
@@ -580,14 +584,22 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         label="Registration number"
         name="registration_number"
         error={error}
-        hint="Fixed once registered — the API has no call to change it."
+        hint="Add the plate here once it is known. Stored canonically — MH12AB1234."
       >
-        <input value={vehicle.registration_number} disabled />
+        <input
+          value={reg}
+          onChange={(e) => setReg(e.target.value)}
+          placeholder="Not known yet"
+        />
       </Field>
       <Field label="Body type" name="body_type_id" error={error}>
-        <select value={bodyTypeId} onChange={(e) => setBodyTypeId(Number(e.target.value))}>
+        <select
+          value={bodyTypeId}
+          onChange={(e) => setBodyTypeId(e.target.value === '' ? '' : Number(e.target.value))}
+        >
+          <option value="">Not known yet</option>
           {/* A body type retired since this truck was registered is kept selectable. */}
-          {!masters.bodyTypes.some((b) => b.id === bodyTypeId) && (
+          {bodyTypeId !== '' && !masters.bodyTypes.some((b) => b.id === bodyTypeId) && (
             <option value={bodyTypeId}>Current type (retired)</option>
           )}
           {masters.bodyTypes.map((b) => (

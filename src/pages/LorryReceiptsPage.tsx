@@ -911,9 +911,9 @@ function VehiclePicker({
         }}
       />
       <datalist id="lr-vehicles">
-        {(found.data?.items ?? []).map((v) => (
-          <option key={v.id} value={v.registration_number} />
-        ))}
+        {(found.data?.items ?? []).map(
+          (v) => v.registration_number && <option key={v.id} value={v.registration_number} />,
+        )}
       </datalist>
     </Field>
   )

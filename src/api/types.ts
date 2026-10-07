@@ -122,8 +122,10 @@ export interface CompanyMember {
 
 export interface VehicleSummary {
   id: number
-  registration_number: string
-  body_type_id: number
+  /** Null until someone has the plate. Show it with `plateOf`. */
+  registration_number: string | null
+  /** Null means "not known yet". */
+  body_type_id: number | null
   capacity: string | null
   /** Derived by the database from `capacity`. Read-only; never send it. */
   capacity_tons: string | null
