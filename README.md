@@ -41,8 +41,8 @@ npm run typecheck      :: types only
 preflight and the browser reports a CORS error that looks like a bug in this code.
 
 **Production** is served at https://trucks.rollingradius.com. `VITE_API_BASE_URL` is empty there, so the
-browser calls `/api/...` on the same origin; Caddy forwards `/api/*` to the API and the rest to Netlify.
-No CORS and no API host in the bundle.
+browser calls `/api/...` on the same origin and Netlify proxies `/api/*` to
+`https://api.trucks.rollingradius.com` (see `netlify.toml`). No CORS and no API host in the bundle.
 
 ---
 
