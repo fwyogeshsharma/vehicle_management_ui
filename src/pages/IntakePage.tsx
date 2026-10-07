@@ -633,10 +633,12 @@ function Reads({
           onChange={(e) => setLengthFt(e.target.value)}
         />
       </label>
-      <label className="wide">
+      {/* A div, not a label: a label forwards any click on its text, including a picked chip,
+          to its first control, which here is a chip's remove button. */}
+      <div className="wide field-group">
         <span className="read-label">Runs in</span>
         <PlacesPicker value={places} onChange={setPlaces} />
-      </label>
+      </div>
       <AlreadyOnFile known={known} company={company} />
       <div className="read-actions">
         <button type="button" className="primary" disabled={busy} onClick={save}>

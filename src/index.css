@@ -947,7 +947,8 @@ button.danger:hover:not(:disabled) {
   align-items: start;
 }
 
-.intake-reads-editing label {
+.intake-reads-editing label,
+.intake-reads-editing .field-group {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -960,6 +961,7 @@ button.danger:hover:not(:disabled) {
 
 /* The numbers and the duplicate notice need the full width; the rest do not. */
 .intake-reads-editing label.wide,
+.intake-reads-editing .field-group.wide,
 .intake-reads-editing .already-on-file,
 .intake-reads-editing .read-actions,
 .intake-reads-editing .form-error {
