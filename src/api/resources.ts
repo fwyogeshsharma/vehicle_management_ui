@@ -409,7 +409,9 @@ export const intake = {
     id: number,
     body: {
       plate?: string
+      /** Driver's numbers only. The company's goes in `company_mobile`; "" clears it. */
       mobiles?: string[]
+      company_mobile?: string | null
       company?: string
       driver_name?: string
       body_type_id?: number | null

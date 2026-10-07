@@ -440,9 +440,13 @@ function Reads({
   // The numbers on the truck, best-read first: the first is offered as the driver's and the
   // second as the company's, the usual arrangement on a truck's side. That is a guess about
   // WHOSE number each is, so every box is editable.
-  const [driverMobile, setDriverMobile] = useState((row.mobiles ?? [])[0] ?? '')
-  const [companyMobile, setCompanyMobile] = useState((row.mobiles ?? [])[1] ?? '')
-  const [driverAltMobile, setDriverAltMobile] = useState((row.mobiles ?? [])[2] ?? '')
+  // What the field executive typed is shown as the company's number, so it is never lost; the
+  // numbers read off the truck fill the driver's boxes, skipping that one if OCR read it too.
+  const reported = row.company_mobile?.trim() || row.reported_mobile?.trim() || ''
+  const read = (row.mobiles ?? []).filter((m) => m !== reported)
+  const [driverMobile, setDriverMobile] = useState(read[0] ?? '')
+  const [companyMobile, setCompanyMobile] = useState(reported || read[1] || '')
+  const [driverAltMobile, setDriverAltMobile] = useState(reported ? (read[1] ?? '') : (read[2] ?? ''))
   const [company, setCompany] = useState(companyOf(row) ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
@@ -499,10 +503,9 @@ function Reads({
     try {
       await intake.correct(row.id, {
         plate,
-        // One list on the wire, in the order the form reads it back: driver's, company's,
-        // driver's other. A blank box is dropped, so the order is only kept while the earlier
-        // ones are filled.
-        mobiles: [driverMobile, companyMobile, driverAltMobile].map(digits).filter(Boolean),
+        // The driver's numbers only; the company's has its own field. "" clears it.
+        mobiles: [driverMobile, driverAltMobile].map(digits).filter(Boolean),
+        company_mobile: digits(companyMobile),
         company,
         driver_name: driverName,
         // 0, not null: null means "not in this request" and would leave the old value. A CSR

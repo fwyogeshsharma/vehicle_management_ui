@@ -302,6 +302,12 @@ export interface IntakeSummary {
   photo_count: number
   reported_plate: string | null
   reported_mobile: string | null
+  /** What the field executive typed as the company's number. */
+  reported_company_mobile?: string | null
+  /** What the CSR saved as the company's number. */
+  edited_company_mobile?: string | null
+  /** The two above resolved, edited first. Use this to display and prefill. */
+  company_mobile?: string | null
   reported_company: string | null
   reported_by: string | null
   reported_driver_name: string | null
