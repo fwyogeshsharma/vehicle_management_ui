@@ -150,6 +150,10 @@ export interface VehicleSummary {
    */
   locations: string | null
   location_count: number
+  /** users.id of the account that registered it; null for older or seeded vehicles. */
+  added_by: number | null
+  /** That account's name, for display. */
+  added_by_name: string | null
 }
 
 export interface VehicleDetail extends VehicleSummary {
@@ -312,6 +316,10 @@ export interface IntakeSummary {
   company_mobile?: string | null
   reported_company: string | null
   reported_by: string | null
+  /** users.id of the account whose token uploaded it. Null for rows before it was recorded. */
+  uploaded_by: number | null
+  /** That account's name, for display. */
+  uploaded_by_name: string | null
   reported_driver_name: string | null
   location: string | null
   ocr_plate: string | null
@@ -364,6 +372,12 @@ export interface IntakeSummary {
   captured_at: string | null
   created_at: string
   processed_at: string | null
+}
+
+/** Optional narrowing for the worklist. Query parameter names, so snake_case. */
+export interface IntakeFilters {
+  registration_number?: string
+  location?: string
 }
 
 export interface IntakeDetail {

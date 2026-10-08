@@ -565,6 +565,11 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           <dd>{vehicle.length_ft ? `${vehicle.length_ft} ft` : '—'}</dd>
           <dt>Notes</dt>
           <dd>{vehicle.notes ?? '—'}</dd>
+          <dt>Added by</dt>
+          <dd>
+            {vehicle.added_by_name ?? '—'}
+            <span className="muted small"> on {new Date(vehicle.created_at).toLocaleDateString()}</span>
+          </dd>
         </dl>
         <button type="button" onClick={() => setEditing(true)}>
           Edit details

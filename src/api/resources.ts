@@ -27,6 +27,7 @@ import type {
   IntakeCounts,
   IntakeLookup,
   IntakeDetail,
+  IntakeFilters,
   IntakeTab,
   IntakeSummary,
   City,
@@ -368,12 +369,19 @@ export const vehicles = {
 // ── photo intake ────────────────────────────────────────────────────────────
 
 export const intake = {
-  list: (tab: IntakeTab, page = 1, pageSize = 25) =>
+  /**
+   * `registration_number` and `location` are partial matches. The plate search ignores spaces
+   * and dashes and covers the CSR's, reporter's and OCR's plates; location covers the reported
+   * address and the places the CSR noted.
+   */
+  list: (tab: IntakeTab, page = 1, pageSize = 25, filters: IntakeFilters = {}) =>
     api.get<Page<IntakeSummary>>(
-      '/api/intake' + query({ tab, page, page_size: pageSize }),
+      '/api/intake' + query({ tab, page, page_size: pageSize, ...filters }),
     ),
 
-  counts: () => api.get<IntakeCounts>('/api/intake/counts'),
+  /** Takes the list's filters, so each badge counts what its tab would show. */
+  counts: (filters: IntakeFilters = {}) =>
+    api.get<IntakeCounts>('/api/intake/counts' + query({ ...filters })),
 
   get: (id: number) => api.get<IntakeDetail>(`/api/intake/${id}`),
 
@@ -444,8 +452,9 @@ export const intake = {
     return api.get<IntakeLookup>(`/api/intake/lookup?${params}`)
   },
 
+  /** Deletes the row and its photos for good. 204; the id is a 404 afterwards. */
   discard: (id: number, reason: string) =>
-    api.post<IntakeSummary>(`/api/intake/${id}/discard`, { reason }),
+    api.post<void>(`/api/intake/${id}/discard`, { reason }),
 
   /**
    * Put a FAILED row back in the OCR queue.

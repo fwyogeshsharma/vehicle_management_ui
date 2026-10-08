@@ -244,6 +244,7 @@ export function VehiclesPage() {
                     the filter already answers that.
                   */}
                   <th>Runs in</th>
+                  <th>Added by</th>
                   <th className="col-actions" />
                 </tr>
               </thead>
@@ -313,7 +314,7 @@ function VehicleRow({
   if (editing) {
     return (
       <tr>
-        <td colSpan={7}>
+        <td colSpan={8}>
           <EditVehicleForm
             vehicle={vehicle}
             bodyTypes={bodyTypes}
@@ -356,6 +357,7 @@ function VehicleRow({
             <span className="muted">serves nowhere</span>
           )}
         </td>
+        <td>{vehicle.added_by_name ?? <span className="muted">—</span>}</td>
         <td className="col-actions">
           <EditAction onClick={() => setEditing(true)} disabled={busy} />
           {vehicle.active ? (
@@ -384,7 +386,7 @@ function VehicleRow({
       </tr>
       {error && (
         <tr>
-          <td colSpan={7}>
+          <td colSpan={8}>
             <Notice kind="error">{error.message}</Notice>
           </td>
         </tr>

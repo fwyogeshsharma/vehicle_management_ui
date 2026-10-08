@@ -6,6 +6,7 @@ import { intake, photoObjectUrl } from '../api/resources'
 import type {
   BodyType,
   Capacity,
+  IntakeFilters,
   IntakeLookup,
   IntakeSummary,
   IntakeTab,
@@ -19,7 +20,7 @@ import {
   RetryAction,
 } from '../components/RowActions'
 import { PlacesPicker } from '../components/PlacesPicker'
-import { useAsync } from '../components/useAsync'
+import { useAsync, useDebounced } from '../components/useAsync'
 import { useMasters } from '../components/useMasters'
 
 const TABS: { tab: IntakeTab; label: string }[] = [
@@ -46,14 +47,23 @@ export function IntakePage() {
   const tab = (params.get('tab') ?? 'ALL') as IntakeTab
   const page = Number(params.get('page') ?? 1)
 
-  const counts = useAsync(() => intake.counts(), [])
-  const list = useAsync(() => intake.list(tab, page), [tab, page])
+  const [plateTerm, setPlateTerm] = useState(params.get('registration_number') ?? '')
+  const [locationTerm, setLocationTerm] = useState(params.get('location') ?? '')
+  const plate = useDebounced(plateTerm).trim()
+  const location = useDebounced(locationTerm).trim()
+  const filters: IntakeFilters = {
+    registration_number: plate || undefined,
+    location: location || undefined,
+  }
+
+  const counts = useAsync(() => intake.counts(filters), [plate, location])
+  const list = useAsync(() => intake.list(tab, page, 25, filters), [tab, page, plate, location])
   const masters = useMasters()
 
   function go(next: Record<string, string | null>) {
     const merged = new URLSearchParams(params)
     for (const [k, v] of Object.entries(next)) {
-      if (v === null) merged.delete(k)
+      if (v === null || v === '') merged.delete(k)
       else merged.set(k, v)
     }
     if (!('page' in next)) merged.delete('page')
@@ -113,6 +123,39 @@ export function IntakePage() {
             })}
           </select>
         </label>
+        <input
+          className="search"
+          placeholder="Registration number…"
+          aria-label="Registration number"
+          value={plateTerm}
+          onChange={(e) => {
+            setPlateTerm(e.target.value)
+            go({ registration_number: e.target.value || null })
+          }}
+        />
+        <input
+          className="search"
+          placeholder="Location…"
+          aria-label="Location"
+          value={locationTerm}
+          onChange={(e) => {
+            setLocationTerm(e.target.value)
+            go({ location: e.target.value || null })
+          }}
+        />
+        {(plate || location) && (
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setPlateTerm('')
+              setLocationTerm('')
+              go({ registration_number: null, location: null })
+            }}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {list.error && <Notice kind="error">{list.error.message}</Notice>}
@@ -120,7 +163,9 @@ export function IntakePage() {
 
       {list.data && list.data.items.length === 0 && (
         <Empty>
-          {tab === 'TO_CALL'
+          {plate || location
+            ? 'No photos match that search in this tab.'
+            : tab === 'TO_CALL'
             ? 'Nothing to call. Photos appear here once OCR has read them.'
             : 'Nothing here.'}
         </Empty>
@@ -218,6 +263,10 @@ function IntakeCard({
               </span>
               {row.photo_count > 1 && ` · ${row.photo_count} photos`}
             </div>
+            {/* The account that sent it, from its token -- not a name anyone typed. */}
+            {row.uploaded_by_name && (
+              <div className="muted small">Uploaded by {row.uploaded_by_name}</div>
+            )}
           </div>
         </div>
 
@@ -272,11 +321,16 @@ function IntakeCard({
           )}
           {row.review_status === 'PENDING' && (
             <DeleteAction
-              title="Discard — not a truck, unreadable, or already on file"
+              title="Delete permanently: the entry and its photos (not a truck, unreadable, or already on file)"
               disabled={busy}
-              onClick={() =>
+              onClick={() => {
+                // It cannot be undone, so it is asked rather than assumed.
+                if (!window.confirm(
+                  `Delete intake #${row.id} and its ${row.photo_count} photo(s) permanently? `
+                  + 'This cannot be undone.',
+                )) return
                 run(() => intake.discard(row.id, 'Discarded from the intake worklist'))
-              }
+              }}
             />
           )}
         </div>
