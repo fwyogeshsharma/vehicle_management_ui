@@ -291,6 +291,7 @@ function IntakeCard({
           {row.review_status !== 'PENDING' && (
             <span className="badge">{row.review_status.toLowerCase()}</span>
           )}
+          {row.verified && <span className="badge badge-ok">verified</span>}
           {row.review_status === 'COMPLETED' && row.vehicle_id && (
             <Link to={`/vehicles/${row.vehicle_id}`}>Open vehicle</Link>
           )}
@@ -517,6 +518,8 @@ function Reads({
   const [axles, setAxles] = useState(row.no_of_axles?.toString() ?? '')
   const [wheels, setWheels] = useState(row.no_of_wheels?.toString() ?? '')
   const [lengthFt, setLengthFt] = useState(row.length_ft?.toString() ?? '')
+  const [verified, setVerified] = useState(row.verified)
+  const [notes, setNotes] = useState(row.notes ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -572,6 +575,9 @@ function Reads({
         no_of_wheels: wheels === '' ? 0 : Number(wheels),
         length_ft: lengthFt === '' ? 0 : lengthFt,
         places,
+        verified,
+        // "" clears them, as with the other text fields.
+        notes,
       })
       onSaved()
     } catch (e) {
@@ -600,6 +606,8 @@ function Reads({
         capacity_id: capacityId === '' ? null : capacityId,
         length_ft: lengthFt === '' ? null : lengthFt,
         places,
+        verified,
+        notes: notes.trim() || null,
       })
       if (done.vehicle_id) onCreated(done.vehicle_id)
       else onSaved()
@@ -692,12 +700,24 @@ function Reads({
           onChange={(e) => setLengthFt(e.target.value)}
         />
       </label>
+      <label className="checkbox inline">
+        <input
+          type="checkbox"
+          checked={verified}
+          onChange={(e) => setVerified(e.target.checked)}
+        />
+        Verified — details confirmed on the call
+      </label>
       {/* A div, not a label: a label forwards any click on its text, including a picked chip,
           to its first control, which here is a chip's remove button. */}
       <div className="wide field-group">
         <span className="read-label">Runs in</span>
         <PlacesPicker value={places} onChange={setPlaces} />
       </div>
+      <label className="wide">
+        <span className="read-label">Notes / remarks — optional</span>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+      </label>
       <AlreadyOnFile known={known} company={company} />
       <div className="read-actions">
         <button type="button" className="primary" disabled={busy} onClick={save}>
@@ -751,7 +771,7 @@ function Facts({
   const typedDisagrees =
     row.reported_mobile && !mobiles.includes(row.reported_mobile) ? row.reported_mobile : null
 
-  if (mobiles.length === 0 && facts.length === 0) {
+  if (mobiles.length === 0 && facts.length === 0 && !row.notes) {
     return (
       <span className="muted small">
         Nothing known yet — open the photo and fill in what you can see.
@@ -780,6 +800,7 @@ function Facts({
           ))}
         </div>
       )}
+      {row.notes && <div className="muted small intake-notes">{row.notes}</div>}
     </>
   )
 }

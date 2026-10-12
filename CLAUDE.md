@@ -7,7 +7,7 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 The browser client for the `vehicleManagement` API. React 18 · TypeScript · Vite. No UI code
 lives in the API project and no domain rules live here — see "Where a rule belongs" below.
 
-Sibling repo: **`C:\repos\vehicleManagement`** is the API. Its `README.md` and `CLAUDE.md` are
+Sibling repo: **`C:\repos\vehicle_management`** is the API. Its `README.md` and `CLAUDE.md` are
 the authority on the domain; this project only renders it. `C:\repos\tts` and
 `C:\repos\FreightDesk` are unrelated to this one.
 

@@ -330,6 +330,7 @@ a {
    other box in the app. One shared rule, not a second set of input styles. */
 .intake-reads-editing input,
 .intake-reads-editing select,
+.intake-reads-editing textarea,
 .place-search input {
   padding: 7px 10px;
   border: 1px solid var(--line);
@@ -344,6 +345,7 @@ a {
 .field textarea:focus,
 .intake-reads-editing input:focus,
 .intake-reads-editing select:focus,
+.intake-reads-editing textarea:focus,
 .place-search input:focus {
   outline: 2px solid var(--accent-soft);
   border-color: var(--accent);
@@ -955,8 +957,30 @@ button.danger:hover:not(:disabled) {
   min-width: 0;
 }
 
-.intake-reads-editing input {
+.intake-reads-editing input,
+.intake-reads-editing textarea {
   width: 100%;
+}
+
+/* The verified tick: box beside its words, not a full-width box stacked over them. */
+.intake-reads-editing label.checkbox {
+  flex-direction: row;
+  /* .checkbox wraps and .inline forbids breaking the text, so in a 260px cell the words fell
+     onto a line of their own. Keep them beside the box and let them wrap instead. */
+  flex-wrap: nowrap;
+  white-space: normal;
+  align-items: center;
+  align-self: end;
+  padding-bottom: 8px;
+}
+
+.intake-reads-editing label.checkbox input {
+  width: auto;
+}
+
+.intake-notes {
+  white-space: pre-line;
+  margin-top: 2px;
 }
 
 /* The numbers and the duplicate notice need the full width; the rest do not. */

@@ -286,6 +286,8 @@ export const vehicles = {
     length_ft?: string | number | null
     /** Only for a person-owned vehicle — a company's truck inherits its company's. */
     places?: Place[]
+    /** Free-text remarks. Optional. */
+    notes?: string | null
   }) => api.post<VehicleDetail>('/api/vehicles', body),
 
   /**
@@ -314,6 +316,8 @@ export const vehicles = {
      * truck it owns inherits; without one they are the vehicle's own.
      */
     places?: Place[]
+    /** Free-text remarks. Optional. */
+    notes?: string | null
   }) => api.post<VehicleDetail>('/api/vehicles/intake', body),
 
   /** The truck's own attributes. Owner and drivers have their own calls. */
@@ -330,6 +334,8 @@ export const vehicles = {
       capacity?: string | null
       length_ft?: string | number | null
       notes?: string | null
+      /** Omit to leave it as it is. */
+      verified?: boolean
     },
   ) => api.put<VehicleDetail>(`/api/vehicles/${id}`, body),
 
@@ -408,6 +414,10 @@ export const intake = {
       capacity_id?: number | null
       length_ft?: string | number | null
       places?: Place[]
+      /** Copied onto the vehicle. Omit to use the tick saved on the intake row. */
+      verified?: boolean
+      /** The vehicle's notes. Omit to use the notes saved on the intake row. */
+      notes?: string | null
     },
   ) => api.post<IntakeSummary>(`/api/intake/${id}/complete`, body),
 
@@ -432,6 +442,9 @@ export const intake = {
       no_of_wheels?: number | null
       length_ft?: string | number | null
       places?: Place[]
+      verified?: boolean
+      /** "" clears them. */
+      notes?: string
     },
   ) => api.patch<IntakeSummary>(`/api/intake/${id}`, body),
 

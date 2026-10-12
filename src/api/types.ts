@@ -133,6 +133,8 @@ export interface VehicleSummary {
   owner_user_id: number | null
   company_owned: boolean
   active: boolean
+  /** A person has confirmed the details (`vehicles.is_verified`). */
+  verified: boolean
   /**
    * Who to ring about this truck: the primary driver, else the owner-driver, else the owning
    * company. Null when nobody on that chain has a number on file.
@@ -351,6 +353,10 @@ export interface IntakeSummary {
   no_of_axles: number | null
   no_of_wheels: number | null
   length_ft: string | null
+  /** The CSR has confirmed the details on the call; copied onto the vehicle at completion. */
+  verified: boolean
+  /** The CSR's remarks; copied onto the vehicle's notes at completion. */
+  notes: string | null
   /** Where the driver says it runs. Notes — the real locations are written at completion. */
   edited_places: Place[] | null
   edited_by: string | null

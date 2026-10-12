@@ -245,6 +245,7 @@ export function VehiclesPage() {
                   */}
                   <th>Runs in</th>
                   <th>Added by</th>
+                  <th>Verified</th>
                   <th className="col-actions" />
                 </tr>
               </thead>
@@ -314,7 +315,7 @@ function VehicleRow({
   if (editing) {
     return (
       <tr>
-        <td colSpan={8}>
+        <td colSpan={9}>
           <EditVehicleForm
             vehicle={vehicle}
             bodyTypes={bodyTypes}
@@ -358,6 +359,13 @@ function VehicleRow({
           )}
         </td>
         <td>{vehicle.added_by_name ?? <span className="muted">—</span>}</td>
+        <td>
+          {vehicle.verified ? (
+            <span className="badge badge-ok">verified</span>
+          ) : (
+            <span className="muted">—</span>
+          )}
+        </td>
         <td className="col-actions">
           <EditAction onClick={() => setEditing(true)} disabled={busy} />
           {vehicle.active ? (
@@ -386,7 +394,7 @@ function VehicleRow({
       </tr>
       {error && (
         <tr>
-          <td colSpan={8}>
+          <td colSpan={9}>
             <Notice kind="error">{error.message}</Notice>
           </td>
         </tr>
@@ -425,6 +433,11 @@ function EditVehicleForm({
   const [wheels, setWheels] = useState(vehicle.no_of_wheels?.toString() ?? '')
   const capacity = useCapacityPick(vehicle.capacity, capacities)
   const [lengthFt, setLengthFt] = useState(String(vehicle.length_ft ?? ''))
+  const [verified, setVerified] = useState(vehicle.verified)
+  // A list row does not carry the notes, so they are read from the vehicle itself. `null` means
+  // untouched: saving then sends what is on file, so a slow load cannot blank them.
+  const detail = useAsync(() => vehicles.get(vehicle.id), [vehicle.id])
+  const [notes, setNotes] = useState<string | null>(null)
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -474,16 +487,17 @@ function EditVehicleForm({
     setBusy(true)
     setError(null)
     try {
-      // The PUT replaces every attribute, and a list row does not carry the notes. Read them
-      // fresh so saving from here does not blank what was written on the vehicle's own page.
-      const { notes } = await vehicles.get(vehicle.id)
+      // The PUT replaces every attribute. Untouched notes are read fresh, so saving from here
+      // does not blank what was written on the vehicle's own page in the meantime.
+      const onFile = notes === null ? (await vehicles.get(vehicle.id)).notes : null
       await vehicles.update(vehicle.id, {
         body_type_id: bodyTypeId === '' ? null : bodyTypeId,
         no_of_axles: axles === '' ? null : Number(axles),
         no_of_wheels: wheels === '' ? null : Number(wheels),
         ...capacity.body,
         length_ft: lengthFt === '' ? null : lengthFt,
-        notes,
+        notes: notes === null ? onFile : notes.trim() || null,
+        verified,
       })
       // Only when touched. Replaces this vehicle's OWN rows; the company's are untouched.
       if (places !== null) {
@@ -579,6 +593,16 @@ function EditVehicleForm({
             onChange={(e) => setLengthFt(e.target.value)}
           />
         </Field>
+        <Field label="Verified" name="verified" error={error}>
+          <label className="checkbox inline">
+            <input
+              type="checkbox"
+              checked={verified}
+              onChange={(e) => setVerified(e.target.checked)}
+            />
+            Details confirmed
+          </label>
+        </Field>
         {driver.data && (
           <>
             <Field label="Driver's name" name="name" error={error}>
@@ -607,6 +631,18 @@ function EditVehicleForm({
           </>
         )}
       </div>
+
+      <Field label="Notes / remarks — optional" name="notes" error={error}>
+        {detail.loading && notes === null ? (
+          <Spinner />
+        ) : (
+          <textarea
+            value={notes ?? detail.data?.notes ?? ''}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+          />
+        )}
+      </Field>
 
       {/*
         Editable for every vehicle now, company-owned included. A truck's own locations are
@@ -796,6 +832,7 @@ function NewVehicleForm({
   const capacityId: number | '' =
     capacityPick ?? capacities.find((c) => c.label === prefill?.capacity)?.id ?? ''
   const [lengthFt, setLengthFt] = useState('')
+  const [notes, setNotes] = useState('')
 
   // intake mode
   const [driverName, setDriverName] = useState(prefill?.driver_name ?? '')
@@ -832,6 +869,7 @@ function NewVehicleForm({
     no_of_wheels: wheels === '' ? null : Number(wheels),
     capacity_id: capacityId === '' ? null : capacityId,
     length_ft: lengthFt === '' ? null : lengthFt,
+    notes: notes.trim() || null,
   }
 
   // Where the locations will actually land. A company's truck may not hold its own -- the API
@@ -1127,6 +1165,10 @@ function NewVehicleForm({
           />
         </Field>
       </div>
+
+      <Field label="Notes / remarks — optional" name="notes" error={error}>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+      </Field>
 
       <div className="actions">
         <button type="submit" className="primary" disabled={busy}>
