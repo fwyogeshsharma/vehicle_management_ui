@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchAll, ApiError } from '../api/client'
-import { users } from '../api/resources'
+import { uploadLinks, users } from '../api/resources'
+import type { UploadLinkStatus } from '../api/resources'
 import { ROLE_LABEL, USER_ROLES } from '../api/types'
 import type { UserRole, UserSummary, UserType } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -129,6 +130,7 @@ function AccountRow({
   const [error, setError] = useState<ApiError | null>(null)
   const [busy, setBusy] = useState(false)
   const [granting, setGranting] = useState(false)
+  const [linking, setLinking] = useState(false)
 
   async function run(action: () => Promise<unknown>, confirmText?: string) {
     if (confirmText && !window.confirm(confirmText)) return
@@ -188,6 +190,11 @@ function AccountRow({
           <button type="button" className="link" onClick={() => setGranting((g) => !g)}>
             {account.username ? 'Reset password' : 'Give a login'}
           </button>
+          {account.active && (
+            <button type="button" className="link" onClick={() => setLinking((l) => !l)}>
+              Upload link
+            </button>
+          )}
           {account.username && (
             <button
               type="button"
@@ -236,6 +243,13 @@ function AccountRow({
           </td>
         </tr>
       )}
+      {linking && (
+        <tr>
+          <td colSpan={6}>
+            <UploadLinkPanel account={account} onClose={() => setLinking(false)} />
+          </td>
+        </tr>
+      )}
       {granting && (
         <tr>
           <td colSpan={5}>
@@ -251,6 +265,119 @@ function AccountRow({
         </tr>
       )}
     </>
+  )
+}
+
+/**
+ * Give someone a personal link to the public "Add a vehicle" page, for a person who has an
+ * account but cannot use the app. Whatever they send is filed under their name.
+ *
+ * The link is shown ONCE, when it is made: the server keeps only a hash. Making another replaces
+ * the old one, which is also how to revoke a link that has been passed on.
+ */
+function UploadLinkPanel({ account, onClose }: { account: UserSummary; onClose: () => void }) {
+  const [status, setStatus] = useState<UploadLinkStatus | null>(null)
+  const [url, setUrl] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<ApiError | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let live = true
+    uploadLinks
+      .status(account.id)
+      .then((s) => live && setStatus(s))
+      .catch((e) => live && setError(e instanceof ApiError ? e : new ApiError(0, String(e))))
+    return () => {
+      live = false
+    }
+  }, [account.id])
+
+  async function act(action: () => Promise<void>) {
+    setBusy(true)
+    setError(null)
+    try {
+      await action()
+      setStatus(await uploadLinks.status(account.id))
+    } catch (e) {
+      setError(e instanceof ApiError ? e : new ApiError(0, String(e)))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function make() {
+    if (
+      status?.exists &&
+      !window.confirm(`${account.name} already has a link.
+
+Making a new one stops the old one working at once.`)
+    ) {
+      return
+    }
+    void act(async () => {
+      const issued = await uploadLinks.issue(account.id)
+      setUrl(window.location.origin + issued.path)
+      setCopied(false)
+    })
+  }
+
+  return (
+    <div className="card">
+      <strong>Upload link for {account.name}</strong>
+      <p className="muted small">
+        Opens a page where {account.name} can add a vehicle with or without photos, without
+        signing in. Everything sent is filed under their name. Anyone holding the link can send
+        as them, so share it privately; it stops working if the account is deactivated.
+      </p>
+      {error && <Notice kind="error">{error.message}</Notice>}
+      {status && (
+        <p className="small">
+          {status.exists
+            ? `A link exists (made ${new Date(status.created_at ?? '').toLocaleDateString()}, ` +
+              (status.last_used_at
+                ? `last used ${new Date(status.last_used_at).toLocaleString()}).`
+                : 'not used yet).')
+            : 'No link yet.'}
+        </p>
+      )}
+      {url && (
+        <div>
+          <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} style={{ width: '100%' }} />
+          <button
+            type="button"
+            className="link"
+            onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true))}
+          >
+            {copied ? 'Copied ✓' : 'Copy'}
+          </button>
+          <p className="muted small">This is the only time the link is shown.</p>
+        </div>
+      )}
+      <button type="button" className="primary" disabled={busy} onClick={make}>
+        {status?.exists ? 'Make a new link' : 'Make a link'}
+      </button>
+      {status?.exists && (
+        <button
+          type="button"
+          className="link danger"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm(`Stop ${account.name}'s link working?`)) {
+              void act(async () => {
+                await uploadLinks.revoke(account.id)
+                setUrl(null)
+              })
+            }
+          }}
+        >
+          Revoke
+        </button>
+      )}
+      <button type="button" className="link" onClick={onClose}>
+        Close
+      </button>
+    </div>
   )
 }
 

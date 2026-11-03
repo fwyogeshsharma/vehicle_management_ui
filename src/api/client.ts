@@ -18,6 +18,9 @@ import type { Page } from './types'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
+/** For the one public page that must not go through `api` (it would attach a login token). */
+export const apiBaseUrl = BASE_URL
+
 /** One field's complaint, keyed by the name the client sent. */
 export interface FieldMessage {
   field: string
@@ -85,6 +88,10 @@ let token: string | null = null
 
 export function setToken(value: string | null) {
   token = value
+}
+
+export function parseApiError(status: number, body: unknown): ApiError {
+  return parseError(status, body)
 }
 
 function parseError(status: number, body: unknown): ApiError {

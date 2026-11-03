@@ -17,10 +17,13 @@ export function PlacesEditor({
   value,
   onChange,
   disabled,
+  withPrice,
 }: {
   value: Place[]
   onChange: (places: Place[]) => void
   disabled?: boolean
+  /** Show a "quoted total" box on each row. For a vehicle's own locations only. */
+  withPrice?: boolean
 }) {
   const masters = useMasters()
 
@@ -45,6 +48,7 @@ export function PlacesEditor({
           states={masters.states}
           cities={masters.cities.filter((c) => c.state_id === place.state_id)}
           disabled={disabled}
+          withPrice={withPrice}
           onChange={(next) => onChange(value.map((p, j) => (i === j ? next : p)))}
           onRemove={() => onChange(value.filter((_, j) => j !== i))}
         />
@@ -61,6 +65,7 @@ function PlaceRow({
   states,
   cities,
   disabled,
+  withPrice,
   onChange,
   onRemove,
 }: {
@@ -68,6 +73,7 @@ function PlaceRow({
   states: State[]
   cities: City[]
   disabled?: boolean
+  withPrice?: boolean
   onChange: (place: Place) => void
   onRemove: () => void
 }) {
@@ -79,7 +85,7 @@ function PlaceRow({
         onChange={(e) =>
           // The city must be in the named state, so changing the state clears it rather than
           // carrying over a city that now belongs somewhere else.
-          onChange({ state_id: Number(e.target.value), city_id: null })
+          onChange({ ...place, state_id: Number(e.target.value), city_id: null })
         }
       >
         {states.map((s) => (
@@ -102,6 +108,23 @@ function PlaceRow({
           </option>
         ))}
       </select>
+      {withPrice && (
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+          className="place-price"
+          placeholder="₹ total"
+          aria-label="Quoted total price"
+          title="What the driver quoted, as a total for the run"
+          value={place.price ?? ''}
+          disabled={disabled}
+          onChange={(e) =>
+            onChange({ ...place, price: e.target.value === '' ? null : Number(e.target.value) })
+          }
+        />
+      )}
       <button type="button" className="link danger" onClick={onRemove} disabled={disabled}>
         Remove
       </button>

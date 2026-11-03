@@ -16,9 +16,14 @@ import type {
   BodyType,
   Capacity,
   Customer,
+  ContractSaveRequest,
   FreightLane,
   GoodsTypeRef,
   LaneSaveRequest,
+  LoadRequest,
+  LoadRequestSaveRequest,
+  LoadRequestVehicles,
+  LoadProviderContract,
   LorryReceipt,
   LrFilters,
   LrSaveRequest,
@@ -133,6 +138,20 @@ export interface UserFilters {
   page?: number
   page_size?: number
   sort?: string
+}
+
+export interface UploadLinkStatus {
+  exists: boolean
+  created_at: string | null
+  last_used_at: string | null
+}
+
+/** Administrator only. The token is in `issue`'s response and nowhere else, ever. */
+export const uploadLinks = {
+  status: (userId: number) => api.get<UploadLinkStatus>(`/api/users/${userId}/upload-link`),
+  issue: (userId: number) =>
+    api.post<{ token: string; path: string }>(`/api/users/${userId}/upload-link`),
+  revoke: (userId: number) => api.delete<void>(`/api/users/${userId}/upload-link`),
 }
 
 export const users = {
@@ -605,4 +624,69 @@ export const lanes = {
   retire: (id: number) => api.post<FreightLane>(`/api/lanes/${id}/retire`),
 
   restore: (id: number) => api.post<FreightLane>(`/api/lanes/${id}/restore`),
+}
+
+// ── load provider contracts ─────────────────────────────────────────────────
+
+/**
+ * The terms agreed with each load provider. ADMIN and TEJJJ_CSR only, like lorry receipts.
+ *
+ * There is no `delete`, deliberately: superseded terms are retired, because what was agreed
+ * before is the record the next negotiation starts from.
+ */
+export const contracts = {
+  list: (f: {
+    q?: string
+    active?: boolean
+    page?: number
+    page_size?: number
+    sort?: string
+  }) => api.get<Page<LoadProviderContract>>('/api/load-provider-contracts' + query({ ...f })),
+
+  get: (id: number) => api.get<LoadProviderContract>(`/api/load-provider-contracts/${id}`),
+
+  create: (body: ContractSaveRequest) =>
+    api.post<LoadProviderContract>('/api/load-provider-contracts', body),
+
+  update: (id: number, body: ContractSaveRequest) =>
+    api.put<LoadProviderContract>(`/api/load-provider-contracts/${id}`, body),
+
+  retire: (id: number) =>
+    api.post<LoadProviderContract>(`/api/load-provider-contracts/${id}/retire`),
+
+  restore: (id: number) =>
+    api.post<LoadProviderContract>(`/api/load-provider-contracts/${id}/restore`),
+}
+
+// ── load requests ───────────────────────────────────────────────────────────
+
+/**
+ * The day's load requests: cargo customers have asked us to move. ADMIN and TEJJJ_CSR only,
+ * like lorry receipts.
+ *
+ * There is no `delete`, deliberately: a request that fell through is CANCELLED, which keeps the
+ * fact that the customer asked.
+ */
+export const loadRequests = {
+  list: (f: {
+    q?: string
+    status?: string
+    consignor_id?: number
+    date_from?: string
+    date_to?: string
+    page?: number
+    page_size?: number
+    sort?: string
+  }) => api.get<Page<LoadRequest>>('/api/load-requests' + query({ ...f })),
+
+  get: (id: number) => api.get<LoadRequest>(`/api/load-requests/${id}`),
+
+  create: (body: LoadRequestSaveRequest) => api.post<LoadRequest>('/api/load-requests', body),
+
+  update: (id: number, body: LoadRequestSaveRequest) =>
+    api.put<LoadRequest>(`/api/load-requests/${id}`, body),
+
+  /** Active vehicles serving the request's pickup and drop cities: both places, or either. */
+  vehicles: (id: number, match: 'both' | 'either') =>
+    api.get<LoadRequestVehicles>(`/api/load-requests/${id}/vehicles` + query({ match })),
 }

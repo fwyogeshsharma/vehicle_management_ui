@@ -195,12 +195,19 @@ export interface EffectiveLocation {
    * carries its company's locations AND its own, so both sources can appear in one list.
    */
   source: 'COMPANY' | 'VEHICLE'
+  /** The driver's quoted total for running here. Null on a company row, or if not asked. */
+  price: number | null
 }
 
 /** A state, optionally narrowed to one city. A null city means the whole state. */
 export interface Place {
   state_id: number
   city_id: number | null
+  /**
+   * What the driver quoted as a TOTAL for running to this place. Only a vehicle's own locations
+   * keep one; null means nobody asked. Ignored by the company endpoints.
+   */
+  price?: number | null
 }
 
 // ── reference data ──────────────────────────────────────────────────────────
@@ -602,4 +609,123 @@ export interface LaneSaveRequest {
   source?: string
   source_mobile?: string
   notes?: string
+}
+
+// ── load provider contracts ─────────────────────────────────────────────────
+
+/**
+ * The terms agreed with a load provider (the company that gives us cargo) at one location.
+ *
+ * Every figure is as entered — none is derived from the others, because the formula differs
+ * between providers and the signed paper is the authority. Null means nobody entered it.
+ */
+export interface LoadProviderContract {
+  id: number
+  /** The customer from the master list. Null on a contract recorded before the link existed. */
+  consignor_id: number | null
+  /** The customer's name when the contract was saved. */
+  company_name: string
+  city_id: number | null
+  location: string | null
+  price_approved: number | null
+  loading_charges: number | null
+  unloading_charges: number | null
+  commission_percentage: number | null
+  munshiana: number | null
+  dala: number | null
+  final_price_for_truck: number | null
+  per_tonne_price: number | null
+  notes: string | null
+  active: boolean
+  recorded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** A PUT replaces the whole contract: a figure left out is cleared, not kept. */
+export interface ContractSaveRequest {
+  /** The company is picked from the customer master; the API takes its name from there. */
+  consignor_id: number
+  city_id?: number | null
+  location?: string
+  price_approved?: number | null
+  loading_charges?: number | null
+  unloading_charges?: number | null
+  commission_percentage?: number | null
+  munshiana?: number | null
+  dala?: number | null
+  final_price_for_truck?: number | null
+  per_tonne_price?: number | null
+  notes?: string
+}
+
+// ── load requests ───────────────────────────────────────────────────────────
+
+export type LoadRequestStatus = 'OPEN' | 'FULFILLED' | 'CANCELLED'
+
+/**
+ * Cargo a customer has asked us to move. A request, not a consignment: no truck is attached and
+ * nothing is owed until a lorry receipt is issued.
+ */
+export interface LoadRequest {
+  id: number
+  /** The customer from the master list. */
+  consignor_id: number
+  /** The customer's name when the request was saved. */
+  company_name: string
+  /** `YYYY-MM-DD`: the day the ask arrived. */
+  request_date: string
+  from_city_id: number | null
+  from_place: string
+  to_city_id: number | null
+  to_place: string
+  goods_type_id: number | null
+  goods: string | null
+  /** For the whole request, not per truck. */
+  weight_tons: number | null
+  trucks_required: number
+  body_type_id: number | null
+  /** `YYYY-MM-DD`: when the cargo must be ready, not when it was asked for. */
+  loading_date: string | null
+  /** The total the customer offered for the run, as stated. */
+  offered_price: number | null
+  contact_name: string | null
+  contact_mobile: string | null
+  notes: string | null
+  status: LoadRequestStatus
+  recorded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** A PUT replaces the whole request; a status left out keeps the current one. */
+export interface LoadRequestSaveRequest {
+  consignor_id: number
+  request_date?: string
+  from_city_id?: number | null
+  from_place: string
+  to_city_id?: number | null
+  to_place: string
+  goods_type_id?: number | null
+  goods?: string
+  weight_tons?: number | null
+  trucks_required?: number
+  body_type_id?: number | null
+  loading_date?: string | null
+  offered_price?: number | null
+  contact_name?: string
+  contact_mobile?: string
+  notes?: string
+  status?: LoadRequestStatus
+}
+
+/**
+ * The vehicles that run where a load request wants to go. `from_matchable` / `to_matchable` are
+ * false when that place is not on the city list, so nothing could be matched against it.
+ */
+export interface LoadRequestVehicles {
+  match: 'both' | 'either'
+  from_matchable: boolean
+  to_matchable: boolean
+  vehicles: VehicleSummary[]
 }

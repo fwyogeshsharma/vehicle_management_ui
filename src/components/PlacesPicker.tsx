@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { City, Place } from '../api/types'
+import type { City, Place, State } from '../api/types'
 import { useMasters } from './useMasters'
 
 /**
@@ -24,18 +24,52 @@ export function PlacesPicker({
   value,
   onChange,
   disabled,
+  withPrice,
 }: {
   value: Place[]
   onChange: (places: Place[]) => void
   disabled?: boolean
+  /** Show a "quoted total" box on each place. For a vehicle's own locations only. */
+  withPrice?: boolean
+}) {
+  // Every state and city arrives in the one masters call, so there is nothing to search remotely
+  // and nothing to resolve: a chip's city name is a lookup, never a request, and never an id.
+  const { states, cities } = useMasters()
+  return (
+    <PlacesPickerView
+      states={states}
+      cities={cities}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      withPrice={withPrice}
+    />
+  )
+}
+
+/**
+ * The same type-ahead with its lists passed in. For the one place that cannot call
+ * `/api/masters` because its user is not signed in: the public upload page loads the lists from
+ * its own link-checked endpoint.
+ */
+export function PlacesPickerView({
+  states,
+  cities,
+  value,
+  onChange,
+  disabled,
+  withPrice,
+}: {
+  states: State[]
+  cities: City[]
+  value: Place[]
+  onChange: (places: Place[]) => void
+  disabled?: boolean
+  withPrice?: boolean
 }) {
   const [term, setTerm] = useState('')
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
-
-  // Every state and city arrives in the one masters call, so there is nothing to search remotely
-  // and nothing to resolve: a chip's city name is a lookup, never a request, and never an id.
-  const { states, cities } = useMasters()
   const cityNames = useMemo(
     () => Object.fromEntries(cities.map((c) => [c.id, c.name])) as Record<number, string>,
     [cities],
@@ -91,6 +125,27 @@ export function PlacesPicker({
               </span>
             ) : (
               <span>All of {stateName(p.state_id)}</span>
+            )}
+            {withPrice && (
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                className="place-price"
+                placeholder="₹ total"
+                aria-label="Quoted total price"
+                title="What the driver quoted, as a total for the run"
+                value={p.price ?? ''}
+                disabled={disabled}
+                onChange={(e) =>
+                  onChange(
+                    value.map((v, j) =>
+                      j === i ? { ...v, price: e.target.value === '' ? null : Number(e.target.value) } : v,
+                    ),
+                  )
+                }
+              />
             )}
             {!disabled && (
               <button

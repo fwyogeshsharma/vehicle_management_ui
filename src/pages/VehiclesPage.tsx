@@ -480,7 +480,7 @@ function EditVehicleForm({
     places ??
     (current.data ?? [])
       .filter((l) => l.source === 'VEHICLE')
-      .map((l) => ({ state_id: l.state_id, city_id: l.city_id }))
+      .map((l) => ({ state_id: l.state_id, city_id: l.city_id, price: l.price }))
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -660,7 +660,11 @@ function EditVehicleForm({
             : undefined
         }
       >
-        {current.loading ? <Spinner /> : <PlacesPicker value={shown} onChange={setPlaces} />}
+        {current.loading ? (
+          <Spinner />
+        ) : (
+          <PlacesPicker value={shown} onChange={setPlaces} withPrice />
+        )}
         {inherited.length > 0 && (
           <p className="muted small">
             Also inherited from the owning company:{' '}
@@ -1115,7 +1119,7 @@ function NewVehicleForm({
               </Notice>
             )}
             {mode === 'intake' ? (
-              <PlacesEditor value={places} onChange={setPlaces} disabled={busy} />
+              <PlacesEditor value={places} onChange={setPlaces} disabled={busy} withPrice />
             ) : (
               <p className="muted small">
                 Register it first, then set them on the company's page.
@@ -1124,7 +1128,7 @@ function NewVehicleForm({
           </>
         ) : (
           <>
-            <PlacesEditor value={places} onChange={setPlaces} disabled={busy} />
+            <PlacesEditor value={places} onChange={setPlaces} disabled={busy} withPrice />
           </>
         )}
       </fieldset>

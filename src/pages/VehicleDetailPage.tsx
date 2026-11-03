@@ -412,6 +412,9 @@ function LocationsCard({ vehicle }: { vehicle: VehicleDetail }) {
           {effective.data.map((l, i) => (
             <li key={i} className="chip">
               {placeLabel(l.state_name, l.city_name)}
+              {l.price !== null && (
+                <span className="chip-tag">₹{l.price.toLocaleString('en-IN')} total</span>
+              )}
               <span className="chip-tag">{l.source === 'COMPANY' ? 'from the company' : 'its own'}</span>
             </li>
           ))}
@@ -428,7 +431,9 @@ function LocationsCard({ vehicle }: { vehicle: VehicleDetail }) {
           type="button"
           onClick={() =>
             setDraft(
-              (effective.data ?? []).map((l) => ({ state_id: l.state_id, city_id: l.city_id })),
+              (effective.data ?? [])
+                .filter((l) => l.source === 'VEHICLE')
+                .map((l) => ({ state_id: l.state_id, city_id: l.city_id, price: l.price })),
             )
           }
         >
@@ -436,7 +441,7 @@ function LocationsCard({ vehicle }: { vehicle: VehicleDetail }) {
         </button>
       ) : (
         <>
-          <PlacesEditor value={draft} onChange={setDraft} disabled={busy} />
+          <PlacesEditor value={draft} onChange={setDraft} disabled={busy} withPrice />
           <div className="actions">
             <button type="button" className="primary" onClick={save} disabled={busy}>
               {busy ? 'Saving…' : 'Save locations'}

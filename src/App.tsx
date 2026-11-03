@@ -9,10 +9,14 @@ import { DashboardPage } from './pages/DashboardPage'
 import { DriverDetailPage } from './pages/DriverDetailPage'
 import { DriversPage } from './pages/DriversPage'
 import { IntakePage } from './pages/IntakePage'
+import { ContractsPage } from './pages/ContractsPage'
 import { LanesPage } from './pages/LanesPage'
+import { LoadRequestDetailPage } from './pages/LoadRequestDetailPage'
+import { LoadRequestsPage } from './pages/LoadRequestsPage'
 import { LoginPage } from './pages/LoginPage'
 import { LorryReceiptsPage } from './pages/LorryReceiptsPage'
 import { MastersPage } from './pages/MastersPage'
+import { UploadPage } from './pages/UploadPage'
 import { VehicleDetailPage } from './pages/VehicleDetailPage'
 import { VehiclesPage } from './pages/VehiclesPage'
 
@@ -27,16 +31,24 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Public, no sign-in: a person's secret upload link. See UploadPage. */}
+          <Route path="/u/:token" element={<UploadPage />} />
 
           <Route element={<RequireAuth />}>
             <Route element={<Layout />}>
-              <Route index element={<DashboardPage />} />
+              {/* The Dashboard has no tab any more; work starts at the intake list. The page is
+                  still at /dashboard. */}
+              <Route index element={<Navigate to="/intake" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="intake" element={<IntakePage />} />
               {/* Lorry receipts are the operating firm's own work: ADMIN and TEJJJ_CSR.
                   The API enforces it too; this only avoids rendering a page that would then
                   403 on every call. */}
               <Route element={<RequireLorryReceipts />}>
                 <Route path="lr" element={<LorryReceiptsPage />} />
+                <Route path="contracts" element={<ContractsPage />} />
+                <Route path="load-requests" element={<LoadRequestsPage />} />
+                <Route path="load-requests/:id" element={<LoadRequestDetailPage />} />
               </Route>
               <Route path="lanes" element={<LanesPage />} />
               <Route path="vehicles" element={<VehiclesPage />} />

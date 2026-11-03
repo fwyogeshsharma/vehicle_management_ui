@@ -712,7 +712,7 @@ function Reads({
           to its first control, which here is a chip's remove button. */}
       <div className="wide field-group">
         <span className="read-label">Runs in</span>
-        <PlacesPicker value={places} onChange={setPlaces} />
+        <PlacesPicker value={places} onChange={setPlaces} withPrice />
       </div>
       <label className="wide">
         <span className="read-label">Notes / remarks — optional</span>
