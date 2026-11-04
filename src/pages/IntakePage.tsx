@@ -649,7 +649,7 @@ function Reads({
         {problem('Company number', 'company_mobile')}
       </label>
       <label>
-        <span className="read-label">Driver&rsquo;s name — needed to create the vehicle</span>
+        <span className="read-label">Driver&rsquo;s name — optional</span>
         <input
           value={driverName}
           onChange={(e) => setDriverName(e.target.value)}

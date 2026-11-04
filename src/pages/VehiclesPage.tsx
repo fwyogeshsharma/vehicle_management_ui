@@ -972,12 +972,8 @@ function NewVehicleForm({
         <fieldset>
           <legend>Driver and company</legend>
           <div className="grid-2">
-            <Field label="Driver's name" name="driver_name" error={error}>
-              <input
-                value={driverName}
-                onChange={(e) => setDriverName(e.target.value)}
-                required
-              />
+            <Field label="Driver's name — optional" name="driver_name" error={error}>
+              <input value={driverName} onChange={(e) => setDriverName(e.target.value)} />
             </Field>
             <Field
               label="Driver's mobile"
