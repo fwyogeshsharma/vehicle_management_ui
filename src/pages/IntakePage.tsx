@@ -618,36 +618,54 @@ function Reads({
     }
   }
 
+  // The server's message for a box, shown beside it. Its bare "must not be blank" says nothing
+  // about WHICH box, so it is turned into a sentence naming the field.
+  const problem = (label: string, ...names: string[]) => {
+    const m = names.map((n) => error?.fieldMessage(n)).find(Boolean)
+    if (!m) return null
+    return (
+      <span className="field-error">
+        {/blank|required|must not be null/i.test(m) && !m.includes(label) ? `${label} is required.` : m}
+      </span>
+    )
+  }
+
   return (
     <div className="intake-reads-editing">
       <FormError error={error} />
       <label>
         <span className="read-label">Registration — optional</span>
         <input value={plate} onChange={(e) => setPlate(e.target.value)} autoFocus />
+        {problem('Registration', 'registration_number', 'plate')}
       </label>
       <label>
-        <span className="read-label">Company name</span>
+        <span className="read-label">Company name — optional</span>
         <input value={company} onChange={(e) => setCompany(e.target.value)} />
+        {problem('Company name', 'company_name', 'company')}
       </label>
       <label>
         <span className="read-label">Company&rsquo;s number — optional</span>
         <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
+        {problem('Company number', 'company_mobile')}
       </label>
       <label>
-        <span className="read-label">Driver&rsquo;s name</span>
+        <span className="read-label">Driver&rsquo;s name — needed to create the vehicle</span>
         <input
           value={driverName}
           onChange={(e) => setDriverName(e.target.value)}
           placeholder="ask on the call"
         />
+        {problem('Driver name', 'driver_name')}
       </label>
       <label>
-        <span className="read-label">Driver&rsquo;s mobile</span>
+        <span className="read-label">Driver&rsquo;s mobile — needed to create the vehicle</span>
         <input value={driverMobile} onChange={(e) => setDriverMobile(e.target.value)} />
+        {problem('Driver mobile', 'driver_mobile')}
       </label>
       <label>
         <span className="read-label">Driver&rsquo;s other number — optional</span>
         <input value={driverAltMobile} onChange={(e) => setDriverAltMobile(e.target.value)} />
+        {problem('Other number', 'driver_alt_mobile', 'mobiles')}
       </label>
       <label>
         <span className="read-label">Body type — optional</span>
@@ -664,7 +682,7 @@ function Reads({
         </select>
       </label>
       <label>
-        <span className="read-label">Capacity</span>
+        <span className="read-label">Capacity — needed to create the vehicle</span>
         <select
           value={capacityId}
           onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
@@ -676,6 +694,7 @@ function Reads({
             </option>
           ))}
         </select>
+        {problem('Capacity', 'capacity', 'capacity_id')}
       </label>
       <label>
         <span className="read-label">Axles — optional</span>
@@ -756,7 +775,11 @@ function Facts({
   bodyTypes: BodyType[]
   capacities: Capacity[]
 }) {
-  const mobiles = row.mobiles ?? []
+  const companyMobile = row.company_mobile?.trim() || null
+  // The company's number is saved apart from the driver's boxes, so it was never in `mobiles`
+  // and a number the CSR had just saved did not appear on the card.
+  const mobiles = [...(row.mobiles ?? [])]
+  if (companyMobile && !mobiles.includes(companyMobile)) mobiles.push(companyMobile)
   const bodyType = bodyTypes.find((b) => b.id === row.body_type_id)?.name
   const places = row.edited_places ?? []
 
@@ -784,8 +807,14 @@ function Facts({
       {mobiles.length > 0 && (
         <div className="fact-line">
           {mobiles.map((m) => (
-            <a key={m} className="phone" href={`tel:+91${m}`}>
+            <a
+              key={m}
+              className="phone"
+              href={`tel:+91${m}`}
+              title={m === companyMobile ? 'Company number' : undefined}
+            >
               {m}
+              {m === companyMobile && <span className="muted small"> (company)</span>}
             </a>
           ))}
           {typedDisagrees && (

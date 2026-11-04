@@ -41,7 +41,7 @@ export function VehiclesPage() {
 
   const page = Number(params.get('page') ?? 1)
   const pageSize = Number(params.get('page_size') ?? 25)
-  const sort = params.get('sort') ?? 'registration_number'
+  const sort = params.get('sort') ?? '-created_at'
   const activeParam = params.get('active')
   const companyId = params.get('company_id')
   const ownerUserId = params.get('owner_user_id')
@@ -124,6 +124,11 @@ export function VehiclesPage() {
           }}
           onCreated={() => {
             setAdding(false)
+            // Newest first, page 1, no filters: a new truck otherwise sorts onto some later page
+            // (a plate-less one onto the last), or is filtered out, and looks as if it was not saved.
+            setTerm('')
+            setContactTerm('')
+            setParams(new URLSearchParams(), { replace: true })
             list.reload()
           }}
         />

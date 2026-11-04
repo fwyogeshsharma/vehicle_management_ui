@@ -121,7 +121,7 @@ a {
 .content {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 24px 24px 96px; /* room under the last control for a floating corner badge */
 }
 
 .stack {
@@ -631,6 +631,7 @@ button.danger:hover:not(:disabled) {
 
 .pager-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
