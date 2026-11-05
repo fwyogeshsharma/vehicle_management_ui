@@ -310,6 +310,13 @@ export type IntakeTab =
  * separate fields on purpose — merging them into one "best guess" would lose the only thing
  * that makes a wrong value explainable.
  */
+export interface IntakeNote {
+  id: number
+  text: string
+  created_by: string | null
+  created_at: string
+}
+
 export interface IntakeSummary {
   id: number
   processing_status: ProcessingStatus
@@ -362,8 +369,10 @@ export interface IntakeSummary {
   length_ft: string | null
   /** The CSR has confirmed the details on the call; copied onto the vehicle at completion. */
   verified: boolean
-  /** The CSR's remarks; copied onto the vehicle's notes at completion. */
-  notes: string | null
+  /** The CSR still has to ring the driver. */
+  call_pending: boolean
+  /** The CSR's remarks, oldest first. Each is dated and is never edited. */
+  note_log: IntakeNote[]
   /** Where the driver says it runs. Notes — the real locations are written at completion. */
   edited_places: Place[] | null
   edited_by: string | null

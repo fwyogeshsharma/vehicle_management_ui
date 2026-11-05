@@ -569,7 +569,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           <dt>Length</dt>
           <dd>{vehicle.length_ft ? `${vehicle.length_ft} ft` : '—'}</dd>
           <dt>Notes</dt>
-          <dd>{vehicle.notes ?? '—'}</dd>
+          <dd className="notes-lines">{vehicle.notes ?? '—'}</dd>
           <dt>Added by</dt>
           <dd>
             {vehicle.added_by_name ?? '—'}

@@ -24,7 +24,7 @@ import { useAsync, useDebounced } from '../components/useAsync'
 import { useMasters } from '../components/useMasters'
 
 const TABS: { tab: IntakeTab; label: string }[] = [
-  { tab: 'ALL', label: 'Everything' },
+  { tab: 'ALL', label: 'All open' },
   { tab: 'TO_CALL', label: 'To call' },
   { tab: 'WAITING', label: 'Waiting for OCR' },
   { tab: 'FAILED', label: 'OCR failed' },
@@ -292,6 +292,7 @@ function IntakeCard({
             <span className="badge">{row.review_status.toLowerCase()}</span>
           )}
           {row.verified && <span className="badge badge-ok">verified</span>}
+          {row.call_pending && <span className="badge badge-warn">call pending</span>}
           {row.review_status === 'COMPLETED' && row.vehicle_id && (
             <Link to={`/vehicles/${row.vehicle_id}`}>Open vehicle</Link>
           )}
@@ -497,11 +498,18 @@ function Reads({
   // WHOSE number each is, so every box is editable.
   // What the field executive typed is shown as the company's number, so it is never lost; the
   // numbers read off the truck fill the driver's boxes, skipping that one if OCR read it too.
-  const reported = row.company_mobile?.trim() || row.reported_mobile?.trim() || ''
-  const read = (row.mobiles ?? []).filter((m) => m !== reported)
-  const [driverMobile, setDriverMobile] = useState(read[0] ?? '')
-  const [companyMobile, setCompanyMobile] = useState(reported || read[1] || '')
-  const [driverAltMobile, setDriverAltMobile] = useState(reported ? (read[1] ?? '') : (read[2] ?? ''))
+  // Until a CSR has saved their own numbers, the number the sender typed comes first, then
+  // what OCR read. They fill the DRIVER's boxes: a number typed on the sharing page is a
+  // person's, and it used to land in the company's box. Once the CSR has saved, their list is
+  // the only truth, and a number they placed is never moved by a guess.
+  const numbers = row.edited_mobiles
+    ? row.edited_mobiles
+    : [...new Set([row.reported_mobile?.trim(), ...(row.mobiles ?? [])].filter(Boolean) as string[])]
+  const [driverMobile, setDriverMobile] = useState(numbers[0] ?? '')
+  const [driverAltMobile, setDriverAltMobile] = useState(numbers[1] ?? '')
+  const [companyMobile, setCompanyMobile] = useState(
+    row.company_mobile?.trim() || (row.edited_mobiles ? '' : (numbers[2] ?? '')),
+  )
   const [company, setCompany] = useState(companyOf(row) ?? '')
   const [driverName, setDriverName] = useState(row.driver_name ?? '')
   const [bodyTypeId, setBodyTypeId] = useState<number | ''>(row.body_type_id ?? '')
@@ -519,7 +527,9 @@ function Reads({
   const [wheels, setWheels] = useState(row.no_of_wheels?.toString() ?? '')
   const [lengthFt, setLengthFt] = useState(row.length_ft?.toString() ?? '')
   const [verified, setVerified] = useState(row.verified)
-  const [notes, setNotes] = useState(row.notes ?? '')
+  const [callPending, setCallPending] = useState(row.call_pending)
+  // Only the NEXT remark. Earlier ones are the log above the box and cannot be changed.
+  const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [known, setKnown] = useState<IntakeLookup | null>(null)
@@ -576,8 +586,9 @@ function Reads({
         length_ft: lengthFt === '' ? 0 : lengthFt,
         places,
         verified,
-        // "" clears them, as with the other text fields.
-        notes,
+        call_pending: callPending,
+        // Added to the log with today's date; blank adds nothing.
+        notes: notes.trim() || undefined,
       })
       onSaved()
     } catch (e) {
@@ -682,7 +693,7 @@ function Reads({
         </select>
       </label>
       <label>
-        <span className="read-label">Capacity — needed to create the vehicle</span>
+        <span className="read-label">Capacity — optional</span>
         <select
           value={capacityId}
           onChange={(e) => setCapacityPick(e.target.value === '' ? '' : Number(e.target.value))}
@@ -727,16 +738,41 @@ function Reads({
         />
         Verified — details confirmed on the call
       </label>
+      <label className="checkbox inline">
+        <input
+          type="checkbox"
+          checked={callPending}
+          onChange={(e) => setCallPending(e.target.checked)}
+        />
+        Call pending — still to ring this driver
+      </label>
       {/* A div, not a label: a label forwards any click on its text, including a picked chip,
           to its first control, which here is a chip's remove button. */}
       <div className="wide field-group">
         <span className="read-label">Runs in</span>
         <PlacesPicker value={places} onChange={setPlaces} withPrice />
       </div>
-      <label className="wide">
-        <span className="read-label">Notes / remarks — optional</span>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-      </label>
+      <div className="wide field-group">
+        <span className="read-label">Notes — each is saved with its date</span>
+        {row.note_log.length > 0 && (
+          <ul className="note-log">
+            {row.note_log.map((n) => (
+              <li key={n.id}>
+                <span className="note-date">{noteStamp(n.created_at)}</span>
+                {n.created_by && <span className="note-by"> · {n.created_by}</span>}
+                <div className="note-text">{n.text}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder="Add a note…"
+          maxLength={1000}
+        />
+      </div>
       <AlreadyOnFile known={known} company={company} />
       <div className="read-actions">
         <button type="button" className="primary" disabled={busy} onClick={save}>
@@ -766,6 +802,16 @@ function Reads({
  * genuinely ambiguous out of context — a bare number could be capacity or a phone, a place could
  * be an address — keep a marker.
  */
+/** "05 Nov 2026, 15:42" -- a note's date, in the reader's own time zone. */
+function noteStamp(iso: string): string {
+  const d = new Date(iso)
+  return (
+    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ', ' +
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  )
+}
+
 function Facts({
   row,
   bodyTypes,
@@ -794,7 +840,7 @@ function Facts({
   const typedDisagrees =
     row.reported_mobile && !mobiles.includes(row.reported_mobile) ? row.reported_mobile : null
 
-  if (mobiles.length === 0 && facts.length === 0 && !row.notes) {
+  if (mobiles.length === 0 && facts.length === 0 && row.note_log.length === 0) {
     return (
       <span className="muted small">
         Nothing known yet — open the photo and fill in what you can see.
@@ -829,7 +875,13 @@ function Facts({
           ))}
         </div>
       )}
-      {row.notes && <div className="muted small intake-notes">{row.notes}</div>}
+      {row.note_log.length > 0 && (
+        <div className="muted small intake-notes">
+          <span className="note-date">{noteStamp(row.note_log[row.note_log.length - 1].created_at)}</span>{' '}
+          {row.note_log[row.note_log.length - 1].text}
+          {row.note_log.length > 1 && ` (+${row.note_log.length - 1} earlier)`}
+        </div>
+      )}
     </>
   )
 }

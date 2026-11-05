@@ -2301,3 +2301,46 @@ button.danger:hover:not(:disabled) {
 .fact-value {
   overflow-wrap: anywhere;
 }
+
+/* ── dated notes on an intake ─────────────────────────────────────────────── */
+
+.note-log {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-log li {
+  background: var(--bg, #f5f6f8);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.note-date {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.note-by {
+  color: var(--ink-soft);
+}
+
+.note-text {
+  white-space: pre-wrap;
+  margin-top: 2px;
+}
+
+.notes-lines {
+  white-space: pre-line;
+}
+
+.badge-warn {
+  background: #fff4d6;
+  color: #7a5200;
+  border-color: #f0d48a;
+}

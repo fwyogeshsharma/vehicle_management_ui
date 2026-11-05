@@ -462,7 +462,8 @@ export const intake = {
       length_ft?: string | number | null
       places?: Place[]
       verified?: boolean
-      /** "" clears them. */
+      call_pending?: boolean
+      /** A NEW remark, added to the dated log. Blank or omitted adds nothing. */
       notes?: string
     },
   ) => api.patch<IntakeSummary>(`/api/intake/${id}`, body),

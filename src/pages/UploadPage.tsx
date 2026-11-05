@@ -245,11 +245,11 @@ export function UploadPage() {
           />
         </Field>
 
-        <Field label="Owner" name="owner" error={error}>
+        <Field label="Driver / owner name" name="owner" error={error}>
           <input
             value={owner}
             onChange={(e) => setOwner(e.target.value)}
-            placeholder="Owner or company name"
+            placeholder="Name of the person"
           />
         </Field>
 
