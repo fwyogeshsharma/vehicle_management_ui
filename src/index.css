@@ -2344,3 +2344,17 @@ button.danger:hover:not(:disabled) {
   color: #7a5200;
   border-color: #f0d48a;
 }
+
+/* Verified status icon, sitting before the edit pencil in a row. */
+.verified-mark {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+  color: var(--muted, #9aa3ad);
+  opacity: 0.45;
+}
+.verified-mark.on {
+  color: var(--ok);
+  opacity: 1;
+}

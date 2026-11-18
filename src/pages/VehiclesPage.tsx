@@ -8,10 +8,11 @@ import { plateOf } from '../components/plate'
 import { Pager, SortHeader } from '../components/Pager'
 import { PlacesEditor } from '../components/PlacesEditor'
 import { PlacesPicker } from '../components/PlacesPicker'
-import { DeleteAction, EditAction, RestoreAction } from '../components/RowActions'
+import { DeleteAction, EditAction, RestoreAction, VerifiedMark } from '../components/RowActions'
 import { useAsync, useDebounced } from '../components/useAsync'
 import { SAVED_CAPACITY, useCapacityPick } from '../components/useCapacityPick'
 import { useMasters } from '../components/useMasters'
+import { stamp } from '../components/stamp'
 
 /** Only keys the API whitelists: an unknown `sort` is a 422, not a silent fallback. */
 const SORTS = ['registration_number', 'capacity_tons', 'created_at', 'id']
@@ -250,7 +251,12 @@ export function VehiclesPage() {
                   */}
                   <th>Runs in</th>
                   <th>Added by</th>
-                  <th>Verified</th>
+                  <SortHeader
+                    label="Added on"
+                    field="created_at"
+                    sort={sort}
+                    onSort={(s) => patch({ sort: s })}
+                  />
                   <th className="col-actions" />
                 </tr>
               </thead>
@@ -364,14 +370,9 @@ function VehicleRow({
           )}
         </td>
         <td>{vehicle.added_by_name ?? <span className="muted">—</span>}</td>
-        <td>
-          {vehicle.verified ? (
-            <span className="badge badge-ok">verified</span>
-          ) : (
-            <span className="muted">—</span>
-          )}
-        </td>
+        <td>{stamp(vehicle.created_at)}</td>
         <td className="col-actions">
+          <VerifiedMark verified={vehicle.verified} />
           <EditAction onClick={() => setEditing(true)} disabled={busy} />
           {vehicle.active ? (
             <DeleteAction

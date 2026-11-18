@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { stamp } from '../components/stamp'
 import { Link, useParams } from 'react-router-dom'
 import { fetchAll, ApiError } from '../api/client'
 import { companies, geo, users, vehicles } from '../api/resources'
@@ -573,7 +574,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           <dt>Added by</dt>
           <dd>
             {vehicle.added_by_name ?? '—'}
-            <span className="muted small"> on {new Date(vehicle.created_at).toLocaleDateString()}</span>
+            <span className="muted small"> on {stamp(vehicle.created_at)}</span>
           </dd>
         </dl>
         <button type="button" onClick={() => setEditing(true)}>

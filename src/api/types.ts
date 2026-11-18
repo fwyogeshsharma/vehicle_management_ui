@@ -156,6 +156,8 @@ export interface VehicleSummary {
   added_by: number | null
   /** That account's name, for display. */
   added_by_name: string | null
+  /** When it was added; for a photo-intake entry, when it became a vehicle. */
+  created_at: string
 }
 
 export interface VehicleDetail extends VehicleSummary {
@@ -163,7 +165,6 @@ export interface VehicleDetail extends VehicleSummary {
   no_of_wheels: number | null
   length_ft: string | null
   notes: string | null
-  created_at: string
   updated_at: string
 }
 

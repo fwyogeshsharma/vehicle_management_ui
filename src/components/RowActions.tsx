@@ -178,3 +178,32 @@ export function RetryAction({
     </button>
   )
 }
+
+/**
+ * Whether a person has confirmed a row's details: a green tick when they have, a faint one when
+ * not. A status, not a button -- it is changed in the edit form, so one stray click in a long
+ * list cannot flip it. The words are in the tooltip, as with the other icons.
+ */
+export function VerifiedMark({ verified }: { verified: boolean }) {
+  const title = verified ? 'Verified' : 'Not verified yet'
+  return (
+    <span
+      className={'verified-mark' + (verified ? ' on' : '')}
+      title={title}
+      role="img"
+      aria-label={title}
+    >
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path
+          d="M5 8.3 7.2 10.5 11 5.9"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  )
+}
