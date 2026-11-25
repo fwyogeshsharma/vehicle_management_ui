@@ -318,6 +318,24 @@ export interface IntakeNote {
   created_at: string
 }
 
+/** Someone who has added intake entries, with how many (admin report). */
+export interface IntakeUploader {
+  user_id: number
+  name: string
+  total: number
+}
+
+/** Entries added on one calendar day; `date` is YYYY-MM-DD. */
+export interface IntakeDay {
+  date: string
+  count: number
+}
+
+export interface IntakeDailyCounts {
+  total: number
+  days: IntakeDay[]
+}
+
 export interface IntakeSummary {
   id: number
   processing_status: ProcessingStatus

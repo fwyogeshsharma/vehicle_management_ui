@@ -14,6 +14,7 @@ type Needs = 'admin' | 'lorryReceipts'
  */
 const LINKS: { to: string; label: string; needs?: Needs }[] = [
   { to: '/intake', label: 'Intake' },
+  { to: '/intake-activity', label: 'Entries by user', needs: 'admin' },
   { to: '/lr', label: 'Lorry receipts', needs: 'lorryReceipts' },
   { to: '/load-requests', label: 'Load requests', needs: 'lorryReceipts' },
   { to: '/contracts', label: 'Contracts', needs: 'lorryReceipts' },

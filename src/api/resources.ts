@@ -13,6 +13,8 @@
 
 import { api, query } from './client'
 import type {
+  IntakeDailyCounts,
+  IntakeUploader,
   BodyType,
   Capacity,
   Customer,
@@ -392,6 +394,20 @@ export const vehicles = {
 }
 
 // ── photo intake ────────────────────────────────────────────────────────────
+
+/**
+ * Admin only. Who has added how many intake entries, and on which days. `tz` is the reader's own
+ * time zone, so a "day" is the day on their clock.
+ */
+export const intakeActivity = {
+  uploaders: () => api.get<IntakeUploader[]>('/api/intake/activity/uploaders'),
+  daily: (userId: number, tz: string) =>
+    api.get<IntakeDailyCounts>('/api/intake/activity/daily' + query({ user_id: userId, tz })),
+  entries: (userId: number, date: string, tz: string) =>
+    api.get<IntakeSummary[]>(
+      '/api/intake/activity/entries' + query({ user_id: userId, date, tz }),
+    ),
+}
 
 export const intake = {
   /**

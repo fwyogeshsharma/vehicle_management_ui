@@ -8,6 +8,7 @@ import { CompanyDetailPage } from './pages/CompanyDetailPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { DriverDetailPage } from './pages/DriverDetailPage'
 import { DriversPage } from './pages/DriversPage'
+import { IntakeActivityPage } from './pages/IntakeActivityPage'
 import { IntakePage } from './pages/IntakePage'
 import { ContractsPage } from './pages/ContractsPage'
 import { LanesPage } from './pages/LanesPage'
@@ -63,6 +64,7 @@ export default function App() {
                   this only avoids showing a screen that would answer 403. */}
               <Route element={<RequireAdmin />}>
                 <Route path="accounts" element={<AccountsPage />} />
+                <Route path="intake-activity" element={<IntakeActivityPage />} />
               </Route>
             </Route>
           </Route>
