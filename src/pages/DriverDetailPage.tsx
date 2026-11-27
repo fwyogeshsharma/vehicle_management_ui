@@ -260,7 +260,8 @@ function UserDetailsCard({ user, onSaved }: { user: UserDetail; onSaved: () => v
   return (
     <section className="card">
       <h2>Details</h2>
-      {error && <Notice kind="error">{error.message}</Notice>}
+      {/* While editing, the form shows the error itself; here too would repeat it. */}
+      {error && !editing && <Notice kind="error">{error.message}</Notice>}
 
       {!editing ? (
         <>

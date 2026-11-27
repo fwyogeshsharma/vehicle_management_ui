@@ -62,6 +62,20 @@ export class ApiError extends Error {
     return this.fields.filter((f) => !this.claimed.has(f.field))
   }
 
+  /**
+   * The same failure with its fields renamed and its messages saying whose they are. For a form
+   * that saves two records whose inputs share the API's names ("mobile" of a driver and of a
+   * company): without this one message sits under both boxes.
+   */
+  forRecord(who: string, names: Record<string, string>): ApiError {
+    if (this.fields.length === 0) return new ApiError(this.status, `${who}: ${this.message}`)
+    const fields = this.fields.map((f) => ({
+      field: names[f.field] ?? f.field,
+      message: `${who}: ${f.message}`,
+    }))
+    return new ApiError(this.status, fields.map((f) => f.message).join(' '), fields)
+  }
+
   get isNotFound() {
     return this.status === 404
   }
@@ -75,6 +89,13 @@ export class ApiError extends Error {
     return this.status === 403
   }
 }
+
+/** A `.catch` that re-throws through {@link ApiError.forRecord}. */
+export const asRecord =
+  (who: string, names: Record<string, string>) =>
+  (e: unknown): never => {
+    throw e instanceof ApiError ? e.forRecord(who, names) : e
+  }
 
 type Unauthorized = () => void
 let onUnauthorized: Unauthorized = () => {}

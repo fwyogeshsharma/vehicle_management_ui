@@ -16,7 +16,8 @@ import { PlacesPickerView } from '../components/PlacesPicker'
  * `/api/public/upload/<token>`, and which person the entry belongs to is decided by the server
  * from the token -- nothing here can choose it.
  *
- * **Nothing on the form is required.** The CSR who rings the driver can use whatever arrives.
+ * **A photo or a mobile number is required**, and nothing else. The server enforces it and its
+ * message is shown beside the mobile box.
  */
 
 const MAX_PHOTOS = 5
@@ -127,18 +128,8 @@ export function UploadPage() {
     if (picker.current) picker.current.value = ''
   }
 
-  const empty =
-    files.length === 0 &&
-    !plate.trim() &&
-    !mobile.trim() &&
-    !owner.trim() &&
-    capacityId === null &&
-    places.length === 0
-
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    // Not a requirement, only a guard against a stray tap on Send with nothing filled in.
-    if (empty && !window.confirm('Nothing has been filled in. Send an empty entry anyway?')) return
     setBusy(true)
     setError(null)
     const form = new FormData()
@@ -198,8 +189,8 @@ export function UploadPage() {
       <form className="card login-card" onSubmit={submit}>
         <h1>Add a vehicle</h1>
         <p className="muted">
-          Sending as <strong>{check.name}</strong>. Fill in whatever you know — nothing is
-          required.
+          Sending as <strong>{check.name}</strong>. Add at least a photo or a mobile number;
+          everything else is optional.
         </p>
 
         {sent > 0 && (
@@ -258,7 +249,7 @@ export function UploadPage() {
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
             inputMode="tel"
-            placeholder="10-digit number"
+            placeholder="10-digit number, starting 6–9"
           />
         </Field>
 

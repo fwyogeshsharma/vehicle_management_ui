@@ -29,7 +29,6 @@ const TABS: { tab: IntakeTab; label: string }[] = [
   { tab: 'WAITING', label: 'Waiting for OCR' },
   { tab: 'FAILED', label: 'OCR failed' },
   { tab: 'COMPLETED', label: 'Done' },
-  { tab: 'DISCARDED', label: 'Discarded' },
 ]
 
 /**
@@ -44,7 +43,8 @@ const TABS: { tab: IntakeTab; label: string }[] = [
  */
 export function IntakePage() {
   const [params, setParams] = useSearchParams()
-  const tab = (params.get('tab') ?? 'ALL') as IntakeTab
+  // Deleted entries are not shown here, so an old ?tab=DISCARDED link falls back to the queue.
+  const tab: IntakeTab = TABS.find((t) => t.tab === params.get('tab'))?.tab ?? 'ALL'
   const page = Number(params.get('page') ?? 1)
 
   const [plateTerm, setPlateTerm] = useState(params.get('registration_number') ?? '')
@@ -83,7 +83,6 @@ export function IntakePage() {
       case 'WAITING': return c.waiting
       case 'FAILED': return c.failed
       case 'COMPLETED': return c.completed
-      case 'DISCARDED': return c.discarded
       default: return null
     }
   }
@@ -323,13 +322,12 @@ function IntakeCard({
           )}
           {row.review_status === 'PENDING' && (
             <DeleteAction
-              title="Delete permanently: the entry and its photos (not a truck, unreadable, or already on file)"
+              title="Delete this entry (not a truck, unreadable, or already on file)"
               disabled={busy}
               onClick={() => {
-                // It cannot be undone, so it is asked rather than assumed.
+                // It cannot be undone from here, so it is asked rather than assumed.
                 if (!window.confirm(
-                  `Delete intake #${row.id} and its ${row.photo_count} photo(s) permanently? `
-                  + 'This cannot be undone.',
+                  `Delete intake #${row.id}? It will be removed from this list.`,
                 )) return
                 run(() => intake.discard(row.id, 'Discarded from the intake worklist'))
               }}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { stamp } from '../components/stamp'
 import { Link, useParams } from 'react-router-dom'
-import { fetchAll, ApiError } from '../api/client'
+import { fetchAll, ApiError, asRecord } from '../api/client'
 import { companies, geo, users, vehicles } from '../api/resources'
 import type { Place, VehicleDetail } from '../api/types'
 import { Empty, Field, FormError, Notice, Spinner } from '../components/Form'
@@ -529,7 +529,13 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           email: d.email,
           city_id: d.city_id,
           notes: d.notes,
-        })
+        }).catch(
+          asRecord('Driver', {
+            name: 'driver_name',
+            mobile: 'driver_mobile',
+            alt_mobile: 'driver_alt_mobile',
+          }),
+        )
       }
       const c = company.data
       if (c && (companyName !== c.name || companyMobile !== (c.mobile ?? ''))) {
@@ -540,7 +546,9 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
           gstin: c.gstin,
           address: c.address,
           head_office_city_id: c.head_office_city_id,
-        })
+        }).catch(
+          asRecord('Company', { name: 'company_name', mobile: 'company_mobile' }),
+        )
       }
       setEditing(false)
       onSaved()
@@ -657,10 +665,10 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         <fieldset>
           <legend>Driver</legend>
           <div className="grid-2">
-            <Field label="Driver's name" name="name" error={error}>
+            <Field label="Driver's name" name="driver_name" error={error}>
               <input value={driverName} onChange={(e) => setDriverName(e.target.value)} required />
             </Field>
-            <Field label="Driver's mobile" name="mobile" error={error}>
+            <Field label="Driver's mobile" name="driver_mobile" error={error}>
               <input
                 value={driverMobile}
                 onChange={(e) => setDriverMobile(e.target.value)}
@@ -668,7 +676,7 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
               />
             </Field>
           </div>
-          <Field label="Driver's other number" name="alt_mobile" error={error} hint="Optional.">
+          <Field label="Driver's other number" name="driver_alt_mobile" error={error} hint="Optional.">
             <input value={driverAlt} onChange={(e) => setDriverAlt(e.target.value)} />
           </Field>
         </fieldset>
@@ -677,10 +685,10 @@ function AttributesCard({ vehicle, onSaved }: { vehicle: VehicleDetail; onSaved:
         <fieldset>
           <legend>Company</legend>
           <div className="grid-2">
-            <Field label="Company name" name="name" error={error}>
+            <Field label="Company name" name="company_name" error={error}>
               <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
             </Field>
-            <Field label="Company's number" name="mobile" error={error} hint="Optional.">
+            <Field label="Company's number" name="company_mobile" error={error} hint="Optional.">
               <input value={companyMobile} onChange={(e) => setCompanyMobile(e.target.value)} />
             </Field>
           </div>

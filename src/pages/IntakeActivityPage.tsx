@@ -25,14 +25,14 @@ const timeOf = (iso: string) =>
 const STATUS: Record<string, string> = {
   PENDING: 'Waiting for the desk',
   COMPLETED: 'Became a vehicle',
-  DISCARDED: 'Discarded',
+  DISCARDED: 'Deleted',
 }
 
 /**
  * Admin only: how many entries each person has added to Photo Intake, day by day.
  *
  * Pick a person to see their count per day; "Show entries" on a day lists every entry they added
- * that day. Only entries still on the system are counted: discarding an entry deletes it.
+ * that day. Entries deleted from the Intake tab are still counted, and listed as Deleted.
  */
 export function IntakeActivityPage() {
   const [userId, setUserId] = useState<number | ''>('')
@@ -59,8 +59,8 @@ export function IntakeActivityPage() {
         <div>
           <h1>Entries by user</h1>
           <p className="muted">
-            How many entries each person has added to Photo Intake, day by day. Discarded entries
-            are deleted, so they are not counted.
+            How many entries each person has added to Photo Intake, day by day. Entries deleted
+            from Intake are included.
           </p>
         </div>
       </header>
@@ -172,7 +172,12 @@ function EntryTable({ rows }: { rows: IntakeSummary[] }) {
               {r.mobiles.length > 0 && <div className="muted small">{r.mobiles.join(', ')}</div>}
             </td>
             <td>{r.company ?? <span className="muted">—</span>}</td>
-            <td>{STATUS[r.review_status] ?? r.review_status}</td>
+            <td>
+              {STATUS[r.review_status] ?? r.review_status}
+              {r.review_status === 'DISCARDED' && r.reviewed_by && (
+                <div className="muted small">by {r.reviewed_by}</div>
+              )}
+            </td>
             <td>
               {r.vehicle_id ? (
                 <Link to={`/vehicles/${r.vehicle_id}`}>Open vehicle</Link>
